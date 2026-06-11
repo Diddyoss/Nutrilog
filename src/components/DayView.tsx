@@ -41,6 +41,35 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
   const isToday = date === todayStr();
   const target = profile.calorie_override ?? profile.calorie_target;
 
+  const impactTargets = {
+    calories: target,
+    protein: profile.protein_target_g,
+    carbs: profile.carbs_target_g,
+    fat: profile.fat_target_g,
+  };
+  const addImpact = {
+    baseline: {
+      calories: totals.calories,
+      protein: totals.protein,
+      carbs: totals.carbs,
+      fat: totals.fat,
+    },
+    targets: impactTargets,
+  };
+  // For edits, the baseline excludes the entry itself so the rings show the
+  // day as it would be with the edited values instead of double-counting.
+  const editImpact = editing
+    ? {
+        baseline: {
+          calories: totals.calories - (editing.calories ?? 0),
+          protein: totals.protein - (editing.protein_g ?? 0),
+          carbs: totals.carbs - (editing.carbs_g ?? 0),
+          fat: totals.fat - (editing.fat_g ?? 0),
+        },
+        targets: impactTargets,
+      }
+    : undefined;
+
   return (
     <>
       <section className="card stats-card">
@@ -95,6 +124,7 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           title="Confirm food"
           saveLabel="Add to Log"
           draft={draft}
+          impact={addImpact}
           onClose={() => setDraft(null)}
           onSave={async (fields) => {
             const ok = await addEntry(fields);
@@ -109,6 +139,7 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           saveLabel="Save Changes"
           draft={entryToDraft(editing)}
           initialMeal={editing.meal}
+          impact={editImpact}
           onClose={() => setEditing(null)}
           onSave={async (fields) => {
             const ok = await updateEntry(editing.id, fields);

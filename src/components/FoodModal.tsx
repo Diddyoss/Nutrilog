@@ -15,6 +15,51 @@ function round1str(n: number): string {
   return String(Math.round(n * 10) / 10);
 }
 
+export interface FoodImpact {
+  /** Day totals excluding this entry (for edits) — what the day looks like without it. */
+  baseline: { calories: number; protein: number; carbs: number; fat: number };
+  targets: { calories: number; protein: number; carbs: number; fat: number };
+}
+
+const MINI_R = 22;
+const MINI_C = 2 * Math.PI * MINI_R;
+
+function MiniRing({
+  label,
+  current,
+  target,
+  colorClass,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  colorClass: 'calories' | 'protein' | 'carbs' | 'fat';
+}) {
+  const pct = target > 0 ? current / target : 0;
+  const frac = Math.min(pct, 1);
+  const over = pct > 1;
+
+  return (
+    <div className="impact-ring">
+      <div className="impact-svg-wrap">
+        <svg viewBox="0 0 56 56">
+          <circle className="mini-track" cx="28" cy="28" r={MINI_R} />
+          <circle
+            className={`mini-fill ${colorClass}${over ? ' over' : ''}`}
+            cx="28"
+            cy="28"
+            r={MINI_R}
+            strokeDasharray={MINI_C}
+            strokeDashoffset={MINI_C * (1 - frac)}
+          />
+        </svg>
+        <span className={`impact-pct${over ? ' over' : ''}`}>{Math.round(pct * 100)}%</span>
+      </div>
+      <span className="micro-label">{label}</span>
+    </div>
+  );
+}
+
 const SOURCE_LABELS: Record<FoodSource, string> = {
   scan: 'Scanned',
   ai_photo: 'AI Photo',
@@ -27,6 +72,7 @@ interface FoodModalProps {
   saveLabel: string;
   draft: FoodDraft;
   initialMeal?: Meal;
+  impact?: FoodImpact;
   onSave: (fields: FoodSaveFields) => Promise<void> | void;
   onClose: () => void;
 }
@@ -35,7 +81,7 @@ function numStr(v: number | null): string {
   return v === null || v === undefined ? '' : String(Math.round(v * 10) / 10);
 }
 
-export function FoodModal({ title, saveLabel, draft, initialMeal, onSave, onClose }: FoodModalProps) {
+export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave, onClose }: FoodModalProps) {
   const [name, setName] = useState(draft.food_name);
   const [serving, setServing] = useState(draft.serving_size);
   const [meal, setMeal] = useState<Meal>(initialMeal ?? defaultMealForNow());
@@ -213,6 +259,38 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, onSave, onClos
             />
           </div>
         </div>
+
+        {impact && (
+          <div className="field">
+            <label className="field-label">Impact on daily targets</label>
+            <div className="impact-row">
+              <MiniRing
+                label="kcal"
+                colorClass="calories"
+                current={impact.baseline.calories + (parseFloat(calories) || 0)}
+                target={impact.targets.calories}
+              />
+              <MiniRing
+                label="Protein"
+                colorClass="protein"
+                current={impact.baseline.protein + (parseFloat(protein) || 0)}
+                target={impact.targets.protein}
+              />
+              <MiniRing
+                label="Carbs"
+                colorClass="carbs"
+                current={impact.baseline.carbs + (parseFloat(carbs) || 0)}
+                target={impact.targets.carbs}
+              />
+              <MiniRing
+                label="Fat"
+                colorClass="fat"
+                current={impact.baseline.fat + (parseFloat(fat) || 0)}
+                target={impact.targets.fat}
+              />
+            </div>
+          </div>
+        )}
 
         <p className="caption muted">
           Changing the serving or calories rescales the other values proportionally.
