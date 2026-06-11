@@ -26,23 +26,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
   }
 
-  const { image, description, media_type } = (req.body ?? {}) as {
+  const { image, description, media_type, context } = (req.body ?? {}) as {
     image?: string;
     description?: string;
     media_type?: string;
+    context?: string;
   };
 
   if (!image && !description) return res.status(400).json({ error: 'No image provided' });
 
   const mediaType = media_type === 'image/png' ? 'image/png' : 'image/jpeg';
+  const contextNote =
+    typeof context === 'string' && context.trim()
+      ? ` Additional context from the user: "${context.trim().slice(0, 300)}"`
+      : '';
 
   // OpenAI-compatible content blocks (OpenRouter uses image_url with a data URL).
   const userContent = image
     ? [
-        { type: 'text', text: 'Analyse this food and return the JSON.' },
+        { type: 'text', text: `Analyse this food and return the JSON.${contextNote}` },
         { type: 'image_url', image_url: { url: `data:${mediaType};base64,${image}` } },
       ]
-    : [{ type: 'text', text: `Analyse this food description and return the JSON. Description: "${description}"` }];
+    : [
+        {
+          type: 'text',
+          text: `Analyse this food description and return the JSON. Description: "${description}"${contextNote}`,
+        },
+      ];
 
   try {
     const r = await fetch(OPENROUTER_URL, {

@@ -13,6 +13,7 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [context, setContext] = useState('');
 
   const handleFile = async (file: File | undefined | null) => {
     if (!file) return;
@@ -20,7 +21,7 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
     setError(null);
     try {
       const { base64, mediaType } = await fileToResizedBase64(file);
-      const draft = await analyzeFoodImage(base64, mediaType);
+      const draft = await analyzeFoodImage(base64, mediaType, context.trim() || undefined);
       onResult(draft);
     } catch {
       setError('Analysis failed — try another photo or use Search.');
@@ -44,6 +45,17 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
 
   return (
     <div className="photo-tab">
+      <div className="field">
+        <label className="field-label">Context for the AI (optional)</label>
+        <textarea
+          className="input textarea"
+          rows={2}
+          maxLength={300}
+          placeholder='e.g. "grilled, no oil", "half portion", "protein shake with whole milk"'
+          value={context}
+          onChange={(e) => setContext(e.target.value)}
+        />
+      </div>
       <button className="photo-capture" onClick={() => cameraInputRef.current?.click()} type="button">
         <Camera size={32} strokeWidth={1.5} />
         <span>Take photo</span>

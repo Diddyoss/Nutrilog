@@ -18,6 +18,12 @@
   --ring-track: #1a1a1a;
   --ring-fill: #ffffff;
   --ring-over: #606060;
+  --macro-protein: #ff5c5c;
+  --macro-carbs: #4c9aff;
+  --macro-fat: #ffd24c;
+  /* damped-spring easing for transitional motion */
+  --spring: cubic-bezier(0.34, 1.4, 0.44, 1);
+  --spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 * {
@@ -118,6 +124,26 @@ code {
   flex-direction: column;
   gap: 24px;
   padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+  animation: pageSpring 480ms var(--spring-soft) both;
+}
+
+/* Damped-spring entrance: overshoots slightly, settles back — runs on every tab switch. */
+@keyframes pageSpring {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.003);
+  }
+  78% {
+    transform: translateY(1.5px) scale(0.999);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .page-header {
@@ -233,6 +259,13 @@ code {
 
 .input::placeholder {
   color: var(--text-muted);
+}
+
+.textarea {
+  min-height: 64px;
+  padding: 10px 12px;
+  resize: none;
+  line-height: 1.4;
 }
 
 select.input {
@@ -412,7 +445,7 @@ input[type='time'].input {
 
 .ring-progress {
   stroke-width: 12;
-  transition: stroke-dashoffset 400ms ease-out, stroke 400ms ease-out;
+  transition: stroke-dashoffset 550ms var(--spring), stroke 400ms ease-out;
 }
 
 .ring-over {
@@ -480,7 +513,44 @@ input[type='time'].input {
   height: 100%;
   background: var(--ring-fill);
   border-radius: 3px;
-  transition: width 300ms ease-out;
+  transition: width 450ms var(--spring);
+}
+
+.macro-fill.protein {
+  background: var(--macro-protein);
+}
+
+.macro-fill.carbs {
+  background: var(--macro-carbs);
+}
+
+.macro-fill.fat {
+  background: var(--macro-fat);
+}
+
+.macro-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.macro-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.macro-dot.protein {
+  background: var(--macro-protein);
+}
+
+.macro-dot.carbs {
+  background: var(--macro-carbs);
+}
+
+.macro-dot.fat {
+  background: var(--macro-fat);
 }
 
 .macro-sub {
@@ -535,8 +605,25 @@ input[type='time'].input {
   transform: rotate(180deg);
 }
 
+/* Spring-eased expand/collapse via the grid 0fr→1fr trick. */
+.meal-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  border-top: 1px solid transparent;
+  transition: grid-template-rows 380ms var(--spring), border-color 200ms ease;
+}
+
+.meal-collapse.open {
+  grid-template-rows: 1fr;
+  border-color: var(--border-subtle);
+}
+
+.meal-collapse > .meal-body {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .meal-body {
-  border-top: 1px solid var(--border-subtle);
   padding: 4px 16px 8px;
 }
 
@@ -662,10 +749,13 @@ input[type='time'].input {
 }
 
 @keyframes sheetUp {
-  from {
+  0% {
     transform: translateY(100%);
   }
-  to {
+  72% {
+    transform: translateY(-7px);
+  }
+  100% {
     transform: translateY(0);
   }
 }
@@ -939,13 +1029,17 @@ input[type='time'].input {
 }
 
 @keyframes modalIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(16px) scale(0.97);
   }
-  to {
+  65% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-3px) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -1202,4 +1296,16 @@ input[type='time'].input {
 :focus-visible {
   outline: 1px solid var(--text-primary);
   outline-offset: 2px;
+}
+
+/* ============ Reduced motion ============ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

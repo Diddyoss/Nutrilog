@@ -12,11 +12,15 @@ function toNum(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export async function analyzeFoodImage(base64: string, mediaType: string): Promise<FoodDraft> {
+export async function analyzeFoodImage(
+  base64: string,
+  mediaType: string,
+  context?: string
+): Promise<FoodDraft> {
   const data = await getJson('/api/analyze-food', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image: base64, media_type: mediaType, type: 'image' }),
+    body: JSON.stringify({ image: base64, media_type: mediaType, context, type: 'image' }),
   });
   return {
     food_name: String(data.food_name ?? 'Unknown food'),

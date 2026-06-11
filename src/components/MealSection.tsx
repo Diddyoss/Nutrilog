@@ -71,7 +71,7 @@ export function MealSection({ meal, entries, onEdit, onDelete }: MealSectionProp
         <span className="meal-kcal">{subtotal} kcal</span>
         <ChevronDown size={16} className={`chevron${expanded ? ' open' : ''}`} />
       </button>
-      {expanded && (
+      <div className={`meal-collapse${expanded ? ' open' : ''}`}>
         <div className="meal-body">
           {entries.length === 0 ? (
             <div className="meal-empty">No items</div>
@@ -79,7 +79,7 @@ export function MealSection({ meal, entries, onEdit, onDelete }: MealSectionProp
             entries.map((e) => <EntryRow key={e.id} entry={e} onEdit={onEdit} onDelete={onDelete} />)
           )}
         </div>
-      )}
+      </div>
     </section>
   );
 }

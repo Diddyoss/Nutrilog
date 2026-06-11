@@ -4,7 +4,17 @@ interface MacroBarsProps {
   fat: { consumed: number; target: number };
 }
 
-function MacroBar({ label, consumed, target }: { label: string; consumed: number; target: number }) {
+function MacroBar({
+  label,
+  consumed,
+  target,
+  colorClass,
+}: {
+  label: string;
+  consumed: number;
+  target: number;
+  colorClass: 'protein' | 'carbs' | 'fat';
+}) {
   const safeTarget = target > 0 ? target : 1;
   const pct = Math.min(100, (consumed / safeTarget) * 100);
   const remaining = Math.round(target - consumed);
@@ -13,13 +23,16 @@ function MacroBar({ label, consumed, target }: { label: string; consumed: number
   return (
     <div className="macro-row">
       <div className="macro-head">
-        <span className="micro-label">{label}</span>
+        <span className="micro-label macro-label">
+          <span className={`macro-dot ${colorClass}`} />
+          {label}
+        </span>
         <span className="caption">
           {c}g / {Math.round(target)}g
         </span>
       </div>
       <div className="macro-track">
-        <div className="macro-fill" style={{ width: `${pct}%` }} />
+        <div className={`macro-fill ${colorClass}`} style={{ width: `${pct}%` }} />
       </div>
       <div className="macro-sub">{remaining >= 0 ? `${remaining}g remaining` : `${Math.abs(remaining)}g over`}</div>
     </div>
@@ -29,9 +42,9 @@ function MacroBar({ label, consumed, target }: { label: string; consumed: number
 export function MacroBars({ protein, carbs, fat }: MacroBarsProps) {
   return (
     <div className="macro-bars">
-      <MacroBar label="Protein" consumed={protein.consumed} target={protein.target} />
-      <MacroBar label="Carbs" consumed={carbs.consumed} target={carbs.target} />
-      <MacroBar label="Fat" consumed={fat.consumed} target={fat.target} />
+      <MacroBar label="Protein" colorClass="protein" consumed={protein.consumed} target={protein.target} />
+      <MacroBar label="Carbs" colorClass="carbs" consumed={carbs.consumed} target={carbs.target} />
+      <MacroBar label="Fat" colorClass="fat" consumed={fat.consumed} target={fat.target} />
     </div>
   );
 }
