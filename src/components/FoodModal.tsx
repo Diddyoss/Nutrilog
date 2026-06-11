@@ -1,7 +1,19 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { defaultMealForNow } from '../lib/date';
 import { MEAL_LABELS, MEALS } from './MealSection';
 import type { FoodDraft, FoodSaveFields, FoodSource, Meal } from '../types';
+
+/** Extract the quantity from a serving string: prefers grams/ml, falls back to the first number. */
+function parseQty(s: string): number | null {
+  const metric = s.match(/(\d+(?:[.,]\d+)?)\s*(?:g|grams?|ml)\b/i);
+  if (metric) return parseFloat(metric[1].replace(',', '.'));
+  const any = s.match(/(\d+(?:[.,]\d+)?)/);
+  return any ? parseFloat(any[1].replace(',', '.')) : null;
+}
+
+function round1str(n: number): string {
+  return String(Math.round(n * 10) / 10);
+}
 
 const SOURCE_LABELS: Record<FoodSource, string> = {
   scan: 'Scanned',
@@ -34,17 +46,53 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, onSave, onClos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Original values captured on open — all proportional rescaling is anchored
+  // here so repeated edits never compound rounding drift.
+  const baseline = useRef({
+    qty: parseQty(draft.serving_size),
+    calories: draft.calories,
+    protein: draft.protein_g,
+    carbs: draft.carbs_g,
+    fat: draft.fat_g,
+  });
+
   const handleServingChange = (value: string) => {
     setServing(value);
-    if (!draft.perGram) return;
-    const m = value.match(/(\d+(?:\.\d+)?)\s*(?:g|grams?)\b/i);
-    if (!m) return;
-    const grams = parseFloat(m[1]);
-    if (!Number.isFinite(grams) || grams <= 0) return;
-    setCalories(String(Math.round(draft.perGram.calories * grams)));
-    setProtein(String(Math.round(draft.perGram.protein_g * grams * 10) / 10));
-    setCarbs(String(Math.round(draft.perGram.carbs_g * grams * 10) / 10));
-    setFat(String(Math.round(draft.perGram.fat_g * grams * 10) / 10));
+
+    // Exact per-gram data (from a database/scan result) wins when grams are typed.
+    const gramMatch = value.match(/(\d+(?:[.,]\d+)?)\s*(?:g|grams?)\b/i);
+    if (draft.perGram && gramMatch) {
+      const grams = parseFloat(gramMatch[1].replace(',', '.'));
+      if (Number.isFinite(grams) && grams > 0) {
+        setCalories(String(Math.round(draft.perGram.calories * grams)));
+        setProtein(round1str(draft.perGram.protein_g * grams));
+        setCarbs(round1str(draft.perGram.carbs_g * grams));
+        setFat(round1str(draft.perGram.fat_g * grams));
+        return;
+      }
+    }
+
+    // Otherwise scale everything by the quantity ratio vs the original serving
+    // (works for 100g -> 50g, 2 cups -> 1 cup, 3 scoops -> 1 scoop, ...).
+    const b = baseline.current;
+    const newQty = parseQty(value);
+    if (b.qty === null || b.qty <= 0 || newQty === null || newQty <= 0) return;
+    const ratio = newQty / b.qty;
+    if (b.calories !== null) setCalories(String(Math.round(b.calories * ratio)));
+    if (b.protein !== null) setProtein(round1str(b.protein * ratio));
+    if (b.carbs !== null) setCarbs(round1str(b.carbs * ratio));
+    if (b.fat !== null) setFat(round1str(b.fat * ratio));
+  };
+
+  const handleCaloriesChange = (value: string) => {
+    setCalories(value);
+    const b = baseline.current;
+    const newCal = parseFloat(value);
+    if (!b.calories || b.calories <= 0 || !Number.isFinite(newCal) || newCal < 0) return;
+    const ratio = newCal / b.calories;
+    if (b.protein !== null) setProtein(round1str(b.protein * ratio));
+    if (b.carbs !== null) setCarbs(round1str(b.carbs * ratio));
+    if (b.fat !== null) setFat(round1str(b.fat * ratio));
   };
 
   const submit = async () => {
@@ -126,7 +174,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, onSave, onClos
             inputMode="numeric"
             min="0"
             value={calories}
-            onChange={(e) => setCalories(e.target.value)}
+            onChange={(e) => handleCaloriesChange(e.target.value)}
           />
         </div>
 
@@ -165,6 +213,10 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, onSave, onClos
             />
           </div>
         </div>
+
+        <p className="caption muted">
+          Changing the serving or calories rescales the other values proportionally.
+        </p>
 
         {error && <p className="caption error-text">{error}</p>}
 
