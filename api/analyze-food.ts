@@ -62,7 +62,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }),
     });
 
-    if (!r.ok) return res.status(502).json({ error: 'AI analysis failed — try again' });
+    if (!r.ok) {
+      const detail = await r.text().catch(() => '');
+      console.error('OpenRouter error', r.status, detail);
+      return res
+        .status(502)
+        .json({ error: 'AI analysis failed — try again', status: r.status, detail: detail.slice(0, 600) });
+    }
 
     const data = await r.json();
     const raw = data?.choices?.[0]?.message?.content;
