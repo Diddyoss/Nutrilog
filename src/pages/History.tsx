@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DayView } from '../components/DayView';
+import { CaloriesChart } from '../components/CaloriesChart';
+import { WeightChart } from '../components/WeightChart';
 import { supabase } from '../lib/supabase';
 import { addDays, formatShortDate, toDateStr, todayStr, weekdayShort } from '../lib/date';
-import type { Profile } from '../types';
+import type { Profile, WeightEntry } from '../types';
 
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
@@ -23,7 +25,11 @@ export function History({ profile }: { profile: Profile }) {
   const [selected, setSelected] = useState(today);
   const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
   const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
+  const [dailyCalories, setDailyCalories] = useState<{ date: string; calories: number }[]>([]);
+  const [weights, setWeights] = useState<WeightEntry[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const calTarget = profile.calorie_override ?? profile.calorie_target;
 
   const loadMonth = useCallback(async () => {
     const from = toDateStr(month);
@@ -84,6 +90,37 @@ export function History({ profile }: { profile: Profile }) {
     });
   }, [profile]);
 
+  const loadTrends = useCallback(async () => {
+    // Daily calorie totals across the last 14 days (zero-filled for continuity).
+    const calFrom = toDateStr(addDays(new Date(), -13));
+    const { data: calData } = await supabase
+      .from('food_log')
+      .select('log_date, calories')
+      .gte('log_date', calFrom);
+    const sums = new Map<string, number>();
+    for (const row of (calData ?? []) as { log_date: string; calories: number }[]) {
+      sums.set(row.log_date, (sums.get(row.log_date) ?? 0) + (row.calories ?? 0));
+    }
+    const days: { date: string; calories: number }[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const ds = toDateStr(addDays(new Date(), -i));
+      days.push({ date: ds, calories: sums.get(ds) ?? 0 });
+    }
+    setDailyCalories(days);
+
+    // Weight, last 30 days, latest entry per day.
+    const wFrom = toDateStr(addDays(new Date(), -30));
+    const { data: wData } = await supabase
+      .from('weight_log')
+      .select('id, log_date, weight_kg')
+      .gte('log_date', wFrom)
+      .order('log_date', { ascending: true })
+      .order('logged_at', { ascending: true });
+    const byDay = new Map<string, WeightEntry>();
+    for (const row of (wData ?? []) as WeightEntry[]) byDay.set(row.log_date, row);
+    setWeights([...byDay.values()]);
+  }, []);
+
   useEffect(() => {
     loadMonth();
   }, [loadMonth, refreshKey]);
@@ -91,6 +128,10 @@ export function History({ profile }: { profile: Profile }) {
   useEffect(() => {
     loadWeek();
   }, [loadWeek, refreshKey]);
+
+  useEffect(() => {
+    loadTrends();
+  }, [loadTrends, refreshKey]);
 
   const cells = useMemo(() => {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -188,6 +229,16 @@ export function History({ profile }: { profile: Profile }) {
             <div className="micro-label">Days logged</div>
           </div>
         </div>
+      </section>
+
+      <section className="card">
+        <div className="micro-label">Calorie trend · 14 days</div>
+        <CaloriesChart days={dailyCalories} target={calTarget} />
+      </section>
+
+      <section className="card">
+        <div className="micro-label">Weight trend · 30 days</div>
+        <WeightChart entries={weights} units={profile.units} />
       </section>
     </div>
   );

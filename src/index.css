@@ -1275,6 +1275,26 @@ input[type='time'].input {
   margin-top: 4px;
 }
 
+.cal-chart svg {
+  width: 100%;
+  display: block;
+}
+
+.cal-bar {
+  fill: var(--ring-fill);
+  transition: height 450ms var(--spring), y 450ms var(--spring);
+}
+
+.cal-bar.over {
+  fill: var(--macro-protein);
+}
+
+.cal-target-line {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
 /* ============ Onboarding ============ */
 
 .onboarding {
