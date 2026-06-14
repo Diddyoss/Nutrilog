@@ -96,4 +96,8 @@ export interface SearchResult {
   protein_per_100g: number | null;
   carbs_per_100g: number | null;
   fat_per_100g: number | null;
+  kcal_serving: number | null;
+  protein_serving: number | null;
+  carbs_serving: number | null;
+  fat_serving: number | null;
 }

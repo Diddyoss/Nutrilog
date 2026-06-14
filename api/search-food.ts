@@ -74,6 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .map((p: Record<string, unknown>) => {
           const n = (p.nutriments ?? {}) as Record<string, unknown>;
           const kcal100 = kcalFrom(n, '100g');
+          const kcalServing = kcalFrom(n, 'serving');
           return {
             name: (p.product_name as string) || (p.generic_name as string) || '',
             brand: (p.brands as string) || null,
@@ -82,6 +83,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             protein_per_100g: num(n['proteins_100g']),
             carbs_per_100g: num(n['carbohydrates_100g']),
             fat_per_100g: num(n['fat_100g']),
+            kcal_serving: kcalServing !== null ? Math.round(kcalServing) : null,
+            protein_serving: num(n['proteins_serving']),
+            carbs_serving: num(n['carbohydrates_serving']),
+            fat_serving: num(n['fat_serving']),
           };
         })
         .filter((p: { name: string }) => p.name);

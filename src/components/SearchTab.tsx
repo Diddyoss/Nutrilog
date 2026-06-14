@@ -77,7 +77,11 @@ export function SearchTab({ onResult }: SearchTabProps) {
               <span className="result-name">{r.name}</span>
               <span className="result-meta">
                 {r.brand ? `${r.brand} · ` : ''}
-                {r.kcal_per_100g !== null ? `${r.kcal_per_100g} kcal / 100g` : 'no calorie data'}
+                {r.serving_size && r.kcal_serving !== null
+                  ? `${r.kcal_serving} kcal / ${r.serving_size}`
+                  : r.kcal_per_100g !== null
+                    ? `${r.kcal_per_100g} kcal / 100g`
+                    : 'no calorie data'}
               </span>
             </button>
           ))}

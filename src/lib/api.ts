@@ -85,7 +85,16 @@ export async function searchFoods(query: string): Promise<SearchResult[]> {
   return Array.isArray(data.results) ? data.results : [];
 }
 
+/** Grams in a serving string, e.g. "30 g" or "1 tbsp (14 g)" -> 30 / 14. */
+function servingGrams(s: string): number | null {
+  const paren = s.match(/\(\s*([\d.,]+)\s*(?:g|ml)\s*\)/i);
+  if (paren) return parseFloat(paren[1].replace(',', '.'));
+  const plain = s.match(/([\d.,]+)\s*(?:g|ml)\b/i);
+  return plain ? parseFloat(plain[1].replace(',', '.')) : null;
+}
+
 export function draftFromSearchResult(r: SearchResult): FoodDraft {
+  const name = r.brand ? `${r.name} (${r.brand})` : r.name;
   const perGram =
     r.kcal_per_100g !== null
       ? {
@@ -96,8 +105,42 @@ export function draftFromSearchResult(r: SearchResult): FoodDraft {
         }
       : null;
 
+  // 1) Prefer the product's natural serving with its own per-serving nutrition
+  //    (e.g. "1 tbsp", "1 plate", "30 g") instead of a flat 100g.
+  if (r.serving_size && r.kcal_serving !== null) {
+    return {
+      food_name: name,
+      serving_size: r.serving_size,
+      calories: r.kcal_serving,
+      protein_g: r.protein_serving,
+      carbs_g: r.carbs_serving,
+      fat_g: r.fat_serving,
+      source: 'search',
+      has_macros: true,
+      perGram,
+    };
+  }
+
+  // 2) Natural serving expressed in grams but only per-100g nutrition known —
+  //    scale per-100g down to the serving so the default still isn't a flat 100g.
+  const grams = r.serving_size ? servingGrams(r.serving_size) : null;
+  if (r.serving_size && grams && grams > 0 && perGram) {
+    return {
+      food_name: name,
+      serving_size: r.serving_size,
+      calories: Math.round(perGram.calories * grams),
+      protein_g: Math.round(perGram.protein_g * grams * 10) / 10,
+      carbs_g: Math.round(perGram.carbs_g * grams * 10) / 10,
+      fat_g: Math.round(perGram.fat_g * grams * 10) / 10,
+      source: 'search',
+      has_macros: true,
+      perGram,
+    };
+  }
+
+  // 3) Fallback: 100g basis (keeps macros consistent with the label).
   return {
-    food_name: r.brand ? `${r.name} (${r.brand})` : r.name,
+    food_name: name,
     serving_size: '100g',
     calories: r.kcal_per_100g,
     protein_g: r.protein_per_100g,
