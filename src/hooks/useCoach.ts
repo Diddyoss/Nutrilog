@@ -1,7 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import type { CoachMessage, Profile } from '../types';
 
 const STORAGE_KEY = 'coach-conversation';
+
+/** Best-effort persistence of an exchange for admin review. RLS scopes rows to this user. */
+async function logExchange(
+  userMessage: string,
+  reply: string,
+  model: unknown,
+  totalTokens: unknown
+): Promise<void> {
+  try {
+    await supabase.from('coach_log').insert({
+      user_message: userMessage,
+      assistant_reply: reply,
+      model: typeof model === 'string' ? model : null,
+      total_tokens: typeof totalTokens === 'number' ? totalTokens : null,
+    });
+  } catch {
+    // Non-fatal: logging must never break the chat.
+  }
+}
 
 const GREETING =
   "Hi! I'm your nutrition coach. I can see your targets and everything you've logged today. " +
@@ -118,6 +138,8 @@ export function useCoach(profile: Profile, todayLog: CoachTodayLog): UseCoachRet
         setMessages((prev) =>
           prev.map((m) => (m.id === placeholder.id ? { ...m, content: data.reply, isLoading: false } : m))
         );
+
+        void logExchange(trimmed, data.reply, data.model, data.usage?.totalTokens);
       } catch (err) {
         const reason = err instanceof Error ? err.message : 'Something went wrong';
         setMessages((prev) =>

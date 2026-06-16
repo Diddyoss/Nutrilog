@@ -74,3 +74,23 @@ create policy "Users manage own weight log" on public.weight_log
   for all to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- Coach conversation log (one row per user/assistant exchange)
+create table if not exists public.coach_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  user_message text not null,
+  assistant_reply text not null,
+  model text,
+  total_tokens integer,
+  created_at timestamptz default now()
+);
+
+create index if not exists coach_log_user_created_idx on public.coach_log (user_id, created_at);
+
+alter table public.coach_log enable row level security;
+
+create policy "Users manage own coach log" on public.coach_log
+  for all to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
