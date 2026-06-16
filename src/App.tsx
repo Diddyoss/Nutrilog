@@ -3,6 +3,7 @@ import { BottomNav } from './components/BottomNav';
 import type { Tab } from './components/BottomNav';
 import { Today } from './pages/Today';
 import { History } from './pages/History';
+import { CoachPage } from './pages/CoachPage';
 import { ProfilePage } from './pages/Profile';
 import { SettingsPage } from './pages/Settings';
 import { Onboarding } from './pages/Onboarding';
@@ -61,6 +62,7 @@ export default function App() {
       <main>
         {tab === 'today' && <Today profile={profile} />}
         {tab === 'history' && <History profile={profile} />}
+        {tab === 'coach' && <CoachPage profile={profile} />}
         {tab === 'profile' && (
           <ProfilePage profile={profile} onSaveProfile={saveProfile} onUpdateProfile={updateProfile} />
         )}

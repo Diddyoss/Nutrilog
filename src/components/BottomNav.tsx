@@ -1,10 +1,11 @@
-import { CalendarDays, Home, Settings, User } from 'lucide-react';
+import { Brain, CalendarDays, Home, Settings, User } from 'lucide-react';
 
-export type Tab = 'today' | 'history' | 'profile' | 'settings';
+export type Tab = 'today' | 'history' | 'coach' | 'profile' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
   { id: 'today', label: 'Today', icon: Home },
   { id: 'history', label: 'History', icon: CalendarDays },
+  { id: 'coach', label: 'Coach', icon: Brain },
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
