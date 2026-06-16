@@ -3,6 +3,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Mirrors the fetch-based OpenRouter pattern in /api/analyze-food.ts.
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
+// Text-only coaching task. DeepSeek V4 primary, Gemini 3 Flash fallback.
+// Both overridable via env without a code change.
+const PRIMARY_MODEL = process.env.COACH_MODEL || 'deepseek/deepseek-v4-flash';
+const FALLBACK_MODEL = process.env.COACH_FALLBACK_MODEL || 'google/gemini-3-flash-preview';
+
 const SYSTEM_PROMPT = `You are a concise, practical nutrition coach embedded in a food tracking app.
 The user's profile and today's food log are provided with every message.
 Rules:
@@ -46,6 +51,38 @@ interface HistoryMessage {
   content: string;
 }
 
+type ChatMessage = { role: string; content: string };
+
+type ModelResult =
+  | { ok: true; reply: string; totalTokens: number }
+  | { ok: false; detail: string };
+
+/** Call a single OpenRouter model. Returns ok:false with a short detail on any failure. */
+async function callModel(model: string, messages: ChatMessage[]): Promise<ModelResult> {
+  try {
+    const r = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173',
+        'X-Title': 'NutriLog Coach',
+      },
+      body: JSON.stringify({ model, max_tokens: 400, messages }),
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      return { ok: false, detail: text.slice(0, 300) || `HTTP ${r.status}` };
+    }
+    const data = await r.json();
+    const reply = data?.choices?.[0]?.message?.content;
+    if (typeof reply !== 'string' || !reply.trim()) return { ok: false, detail: 'empty response' };
+    return { ok: true, reply: reply.trim(), totalTokens: data?.usage?.total_tokens ?? 0 };
+  } catch (e) {
+    return { ok: false, detail: e instanceof Error ? e.message : 'request failed' };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   if (!process.env.OPENROUTER_API_KEY) {
@@ -82,50 +119,36 @@ User message: ${userMessage}`;
       !!m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string'
   );
 
-  try {
-    const r = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:5173',
-        'X-Title': 'NutriLog Coach',
-      },
-      body: JSON.stringify({
-        model: 'openrouter/fusion',
-        max_tokens: 400,
-        tool_choice: 'required', // forces Fusion to run on every request
-        preset: 'general-budget', // Budget preset: Gemini 3 Flash + Kimi K2.6 + DeepSeek V4 Pro
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...history,
-          { role: 'user', content: enrichedMessage },
-        ],
-      }),
-    });
+  const messages: ChatMessage[] = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...history,
+    { role: 'user', content: enrichedMessage },
+  ];
 
-    if (!r.ok) {
-      const details = await r.text().catch(() => '');
-      return res
-        .status(502)
-        .json({ error: 'Coach is unavailable right now — try again', details: details.slice(0, 500) });
-    }
-
-    const data = await r.json();
-    const reply = data?.choices?.[0]?.message?.content;
-    if (typeof reply !== 'string' || !reply.trim()) {
-      return res.status(502).json({ error: 'Coach returned an empty response — try again' });
-    }
-
-    return res.status(200).json({
-      reply: reply.trim(),
-      usage: { totalTokens: data?.usage?.total_tokens ?? 0 },
-    });
-  } catch {
-    return res.status(502).json({ error: 'Coach request failed — try again' });
+  // Try DeepSeek V4 first; fall back to Gemini 3 Flash if it fails or returns nothing.
+  const primary = await callModel(PRIMARY_MODEL, messages);
+  if (primary.ok) {
+    return res
+      .status(200)
+      .json({ reply: primary.reply, usage: { totalTokens: primary.totalTokens }, model: PRIMARY_MODEL });
   }
+
+  const fallback = await callModel(FALLBACK_MODEL, messages);
+  if (fallback.ok) {
+    return res
+      .status(200)
+      .json({ reply: fallback.reply, usage: { totalTokens: fallback.totalTokens }, model: FALLBACK_MODEL });
+  }
+
+  return res.status(502).json({
+    error: 'Coach is unavailable right now — try again',
+    details: `${PRIMARY_MODEL}: ${primary.detail} | ${FALLBACK_MODEL}: ${fallback.detail}`,
+  });
 }
 
 // Required env vars:
-// - OPENROUTER_API_KEY  server-side OpenRouter key (already set in Vercel; the only new var needed)
-// - VERCEL_URL          provided automatically by Vercel; optional, used for the HTTP-Referer header
+// - OPENROUTER_API_KEY     server-side OpenRouter key (already set in Vercel; the only required var)
+// Optional env vars:
+// - COACH_MODEL            primary model (default deepseek/deepseek-v4-flash)
+// - COACH_FALLBACK_MODEL   fallback model (default google/gemini-3-flash-preview)
+// - VERCEL_URL             provided automatically by Vercel; used for the HTTP-Referer header

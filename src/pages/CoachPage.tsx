@@ -75,7 +75,7 @@ export function CoachPage({ profile }: { profile: Profile }) {
       <header className="page-header coach-header">
         <div className="coach-title-group">
           <h1 className="page-title">Coach</h1>
-          <p className="caption muted">Powered by Fusion · Budget</p>
+          <p className="caption muted">Powered by DeepSeek V4 · Gemini 3 Flash</p>
         </div>
         <button className="btn-text" onClick={handleClear} type="button">
           {confirmClear ? 'Tap to confirm' : 'Clear'}
