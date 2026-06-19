@@ -131,6 +131,21 @@ export async function searchFoods(query: string): Promise<SearchResult[]> {
   return Array.isArray(data.results) ? data.results : [];
 }
 
+/** Empty draft for manual entry — all fields blank/editable in the Confirm Food modal. */
+export function blankManualDraft(): FoodDraft {
+  return {
+    food_name: '',
+    serving_size: '',
+    calories: null,
+    protein_g: null,
+    carbs_g: null,
+    fat_g: null,
+    source: 'manual',
+    perGram: null,
+    micros: {},
+  };
+}
+
 /** Grams in a serving string, e.g. "30 g" or "1 tbsp (14 g)" -> 30 / 14. */
 function servingGrams(s: string): number | null {
   const paren = s.match(/\(\s*([\d.,]+)\s*(?:g|ml)\s*\)/i);

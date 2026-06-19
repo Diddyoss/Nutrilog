@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { IScannerControls } from '@zxing/browser';
-import { lookupBarcode } from '../lib/api';
+import { blankManualDraft, lookupBarcode } from '../lib/api';
 import type { FoodDraft } from '../types';
 
 type ScanState = 'starting' | 'scanning' | 'looking' | 'notfound' | 'denied';
@@ -100,6 +100,13 @@ export function ScanTab({ onResult, onSwitchToPhoto }: ScanTabProps) {
         <button className="btn btn-secondary btn-block" onClick={onSwitchToPhoto} type="button">
           Use Photo instead
         </button>
+        <button
+          className="btn btn-secondary btn-block"
+          onClick={() => onResult(blankManualDraft())}
+          type="button"
+        >
+          Enter manually
+        </button>
       </div>
     );
   }
@@ -107,8 +114,12 @@ export function ScanTab({ onResult, onSwitchToPhoto }: ScanTabProps) {
   if (state === 'notfound') {
     return (
       <div className="scan-fallback">
-        <p className="body-text">Product not found — try Photo instead</p>
-        <button className="btn btn-primary btn-block" onClick={onSwitchToPhoto} type="button">
+        <p className="body-text">Product not found</p>
+        <p className="caption muted">Enter its details by hand, or try another method.</p>
+        <button className="btn btn-primary btn-block" onClick={() => onResult(blankManualDraft())} type="button">
+          Enter manually
+        </button>
+        <button className="btn btn-secondary btn-block" onClick={onSwitchToPhoto} type="button">
           Switch to Photo
         </button>
         <button

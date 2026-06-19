@@ -1,22 +1,11 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
-import { draftFromSearchResult, searchFoods } from '../lib/api';
+import { blankManualDraft, draftFromSearchResult, searchFoods } from '../lib/api';
 import type { FoodDraft, SearchResult } from '../types';
 
 interface SearchTabProps {
   onResult: (draft: FoodDraft) => void;
 }
-
-const BLANK_MANUAL: FoodDraft = {
-  food_name: '',
-  serving_size: '',
-  calories: null,
-  protein_g: null,
-  carbs_g: null,
-  fat_g: null,
-  source: 'manual',
-  perGram: null,
-};
 
 export function SearchTab({ onResult }: SearchTabProps) {
   const [query, setQuery] = useState('');
@@ -59,7 +48,7 @@ export function SearchTab({ onResult }: SearchTabProps) {
       {results !== null && results.length === 0 && !loading && (
         <div className="empty-state">
           <p>No results found.</p>
-          <button className="btn btn-secondary" onClick={() => onResult(BLANK_MANUAL)} type="button">
+          <button className="btn btn-secondary" onClick={() => onResult(blankManualDraft())} type="button">
             Add manually
           </button>
         </div>

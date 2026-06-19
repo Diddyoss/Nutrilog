@@ -807,10 +807,15 @@ input[type='time'].input {
 .scan-tab,
 .photo-tab,
 .search-tab,
+.manual-tab,
 .scan-fallback {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.manual-tab {
+  padding-top: 16px;
 }
 
 .scan-fallback {
