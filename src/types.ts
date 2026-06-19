@@ -5,6 +5,30 @@ export type Meal = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 export type FoodSource = 'scan' | 'ai_photo' | 'search' | 'manual';
 export type Units = 'metric' | 'imperial';
 
+// Trackable micronutrient field names — identical to the food_log / supplement_log columns,
+// so values map 1:1 to the database with no remapping.
+export type NutrientKey =
+  | 'vitamin_a_mcg'
+  | 'vitamin_c_mg'
+  | 'vitamin_d_mcg'
+  | 'vitamin_e_mg'
+  | 'vitamin_k_mcg'
+  | 'vitamin_b6_mg'
+  | 'vitamin_b12_mcg'
+  | 'folate_mcg'
+  | 'calcium_mg'
+  | 'iron_mg'
+  | 'magnesium_mg'
+  | 'potassium_mg'
+  | 'zinc_mg'
+  | 'sodium_mg'
+  | 'saturated_fat_g'
+  | 'unsaturated_fat_g'
+  | 'trans_fat_g'
+  | 'fiber_g';
+
+export type NutrientValues = Record<NutrientKey, number>;
+
 export interface Profile {
   id: string;
   user_id: string;
@@ -41,7 +65,7 @@ export interface Targets {
   fat_target_g: number;
 }
 
-export interface FoodEntry {
+export type FoodEntry = {
   id: string;
   log_date: string;
   meal: Meal;
@@ -53,9 +77,9 @@ export interface FoodEntry {
   fat_g: number | null;
   source: FoodSource;
   logged_at: string;
-}
+} & Partial<Record<NutrientKey, number | null>>;
 
-export interface FoodSaveFields {
+export type FoodSaveFields = {
   food_name: string;
   serving_size: string | null;
   meal: Meal;
@@ -64,7 +88,12 @@ export interface FoodSaveFields {
   carbs_g: number;
   fat_g: number;
   source: FoodSource;
-}
+} & NutrientValues;
+
+/** per-gram nutrition basis, when known, used to recalculate on serving change */
+export type PerGram = { calories: number; protein_g: number; carbs_g: number; fat_g: number } & Partial<
+  Record<NutrientKey, number>
+>;
 
 export interface FoodDraft {
   food_name: string;
@@ -78,8 +107,9 @@ export interface FoodDraft {
   note?: string;
   /** false when a scanned product had no nutriment data */
   has_macros?: boolean;
-  /** per-gram nutrition basis, when known, used to recalculate on serving change */
-  perGram?: { calories: number; protein_g: number; carbs_g: number; fat_g: number } | null;
+  perGram?: PerGram | null;
+  /** micronutrient values at the current serving */
+  micros?: Partial<NutrientValues>;
 }
 
 export interface WeightEntry {
@@ -87,6 +117,19 @@ export interface WeightEntry {
   log_date: string;
   weight_kg: number;
 }
+
+export type SupplementEntry = {
+  id: string;
+  log_date: string;
+  supplement_name: string;
+  dose: string | null;
+  logged_at: string;
+} & Partial<Record<NutrientKey, number | null>>;
+
+export type SupplementSaveFields = {
+  supplement_name: string;
+  dose: string | null;
+} & Partial<NutrientValues>;
 
 export interface CoachMessage {
   id: string;
@@ -108,4 +151,6 @@ export interface SearchResult {
   protein_serving: number | null;
   carbs_serving: number | null;
   fat_serving: number | null;
+  micros_per_100g?: Partial<Record<NutrientKey, number>>;
+  micros_serving?: Partial<Record<NutrientKey, number>>;
 }

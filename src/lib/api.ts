@@ -1,4 +1,5 @@
-import type { FoodDraft, SearchResult } from '../types';
+import type { FoodDraft, NutrientKey, NutrientValues, SearchResult } from '../types';
+import { ALL_NUTRIENT_KEYS } from './nutrientReference';
 
 async function getJson(url: string, init?: RequestInit) {
   const res = await fetch(url, init);
@@ -10,6 +11,41 @@ async function getJson(url: string, init?: RequestInit) {
 function toNum(v: unknown): number | null {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+type MicroSource = Record<string, unknown> | null | undefined;
+
+/** Pull known micronutrient keys out of an arbitrary object as numbers. */
+function coerceMicros(src: MicroSource): Partial<NutrientValues> {
+  const out: Partial<NutrientValues> = {};
+  if (!src) return out;
+  for (const k of ALL_NUTRIENT_KEYS) {
+    const v = toNum(src[k]);
+    if (v !== null) out[k] = v;
+  }
+  return out;
+}
+
+/** Convert per-100g micros to a per-gram basis for proportional rescaling. */
+function microsPerGram(src: MicroSource): Partial<Record<NutrientKey, number>> {
+  const out: Partial<Record<NutrientKey, number>> = {};
+  if (!src) return out;
+  for (const k of ALL_NUTRIENT_KEYS) {
+    const v = toNum(src[k]);
+    if (v !== null) out[k] = v / 100;
+  }
+  return out;
+}
+
+/** Scale per-100g micros to a gram serving. */
+function microsForGrams(src: MicroSource, grams: number): Partial<NutrientValues> {
+  const out: Partial<NutrientValues> = {};
+  if (!src) return out;
+  for (const k of ALL_NUTRIENT_KEYS) {
+    const v = toNum(src[k]);
+    if (v !== null) out[k] = Math.round((v * grams) / 100 * 10) / 10;
+  }
+  return out;
 }
 
 export async function analyzeFoodImage(
@@ -33,6 +69,7 @@ export async function analyzeFoodImage(
     confidence: ['high', 'medium', 'low'].includes(data.confidence) ? data.confidence : undefined,
     note: typeof data.note === 'string' ? data.note : undefined,
     perGram: null,
+    micros: coerceMicros(data),
   };
 }
 
@@ -44,7 +81,14 @@ interface BarcodeProduct {
   protein_g: number | null;
   carbs_g: number | null;
   fat_g: number | null;
-  per_100g: { calories: number; protein_g: number | null; carbs_g: number | null; fat_g: number | null } | null;
+  micros?: Record<string, number>;
+  per_100g: {
+    calories: number;
+    protein_g: number | null;
+    carbs_g: number | null;
+    fat_g: number | null;
+    micros?: Record<string, number>;
+  } | null;
   has_macros: boolean;
 }
 
@@ -61,6 +105,7 @@ export async function lookupBarcode(
         protein_g: (p.per_100g.protein_g ?? 0) / 100,
         carbs_g: (p.per_100g.carbs_g ?? 0) / 100,
         fat_g: (p.per_100g.fat_g ?? 0) / 100,
+        ...microsPerGram(p.per_100g.micros),
       }
     : null;
 
@@ -76,6 +121,7 @@ export async function lookupBarcode(
       source: 'scan',
       has_macros: p.has_macros,
       perGram,
+      micros: coerceMicros(p.micros),
     },
   };
 }
@@ -102,12 +148,14 @@ export function draftFromSearchResult(r: SearchResult): FoodDraft {
           protein_g: (r.protein_per_100g ?? 0) / 100,
           carbs_g: (r.carbs_per_100g ?? 0) / 100,
           fat_g: (r.fat_per_100g ?? 0) / 100,
+          ...microsPerGram(r.micros_per_100g),
         }
       : null;
 
   // 1) Prefer the product's natural serving with its own per-serving nutrition
   //    (e.g. "1 tbsp", "1 plate", "30 g") instead of a flat 100g.
   if (r.serving_size && r.kcal_serving !== null) {
+    const servingMicros = coerceMicros(r.micros_serving);
     return {
       food_name: name,
       serving_size: r.serving_size,
@@ -118,6 +166,7 @@ export function draftFromSearchResult(r: SearchResult): FoodDraft {
       source: 'search',
       has_macros: true,
       perGram,
+      micros: Object.keys(servingMicros).length > 0 ? servingMicros : coerceMicros(r.micros_per_100g),
     };
   }
 
@@ -135,6 +184,7 @@ export function draftFromSearchResult(r: SearchResult): FoodDraft {
       source: 'search',
       has_macros: true,
       perGram,
+      micros: microsForGrams(r.micros_per_100g, grams),
     };
   }
 
@@ -149,5 +199,6 @@ export function draftFromSearchResult(r: SearchResult): FoodDraft {
     source: 'search',
     has_macros: r.kcal_per_100g !== null,
     perGram,
+    micros: coerceMicros(r.micros_per_100g),
   };
 }

@@ -14,11 +14,32 @@ a raw JSON object — no markdown, no code fences, no explanation. Structure:
   "protein_g": 00,
   "carbs_g": 00,
   "fat_g": 00,
+  "saturated_fat_g": 00,
+  "unsaturated_fat_g": 00,
+  "trans_fat_g": 00,
+  "fiber_g": 00,
+  "vitamin_a_mcg": 00,
+  "vitamin_c_mg": 00,
+  "vitamin_d_mcg": 00,
+  "vitamin_e_mg": 00,
+  "vitamin_k_mcg": 00,
+  "vitamin_b6_mg": 00,
+  "vitamin_b12_mcg": 00,
+  "folate_mcg": 00,
+  "calcium_mg": 00,
+  "iron_mg": 00,
+  "magnesium_mg": 00,
+  "potassium_mg": 00,
+  "zinc_mg": 00,
+  "sodium_mg": 00,
   "confidence": "high | medium | low",
   "note": "one short sentence about the estimate"
 }
 Rules: if multiple foods are visible, estimate the total for the whole meal.
-Never return null for numeric fields — use 0 if unknown. All numbers are integers.`;
+Macro grams (protein/carbs/fat) and calories are integers.
+Micronutrient values are rough estimates based on typical composition of the identified food —
+treat them as directional, not lab-precise. Never return null; use 0 if a nutrient is genuinely
+absent or unknown.`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -64,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 512,
+        max_tokens: 750,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: userContent },

@@ -1,7 +1,23 @@
 import { useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { defaultMealForNow } from '../lib/date';
 import { MEAL_LABELS, MEALS } from './MealSection';
-import type { FoodDraft, FoodSaveFields, FoodSource, Meal } from '../types';
+import {
+  ALL_NUTRIENT_KEYS,
+  GROUP_LABELS,
+  NUTRIENT_GROUPS,
+  NUTRIENT_META,
+} from '../lib/nutrientReference';
+import type {
+  FoodDraft,
+  FoodSaveFields,
+  FoodSource,
+  Meal,
+  NutrientKey,
+  NutrientValues,
+} from '../types';
+
+const MICRO_VIEWS = ['vitamins', 'minerals', 'fats'] as const;
 
 /** Extract the quantity from a serving string: prefers grams/ml, falls back to the first number. */
 function parseQty(s: string): number | null {
@@ -13,6 +29,24 @@ function parseQty(s: string): number | null {
 
 function round1str(n: number): string {
   return String(Math.round(n * 10) / 10);
+}
+
+/** Micro display: blank when zero to keep the form uncluttered. */
+function microStr(n: number): string {
+  const r = Math.round(n * 10) / 10;
+  return r ? String(r) : '';
+}
+
+function initMicroStrings(src?: Partial<NutrientValues>): Record<NutrientKey, string> {
+  const out = {} as Record<NutrientKey, string>;
+  for (const k of ALL_NUTRIENT_KEYS) out[k] = microStr(Number(src?.[k] ?? 0));
+  return out;
+}
+
+function initMicroNums(src?: Partial<NutrientValues>): NutrientValues {
+  const out = {} as NutrientValues;
+  for (const k of ALL_NUTRIENT_KEYS) out[k] = Number(src?.[k] ?? 0) || 0;
+  return out;
 }
 
 export interface FoodImpact {
@@ -89,6 +123,8 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   const [protein, setProtein] = useState(numStr(draft.protein_g));
   const [carbs, setCarbs] = useState(numStr(draft.carbs_g));
   const [fat, setFat] = useState(numStr(draft.fat_g));
+  const [micros, setMicros] = useState<Record<NutrientKey, string>>(() => initMicroStrings(draft.micros));
+  const [microsOpen, setMicrosOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,12 +136,27 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
     protein: draft.protein_g,
     carbs: draft.carbs_g,
     fat: draft.fat_g,
+    micros: initMicroNums(draft.micros),
   });
+
+  const setMicro = (key: NutrientKey, value: string) =>
+    setMicros((prev) => ({ ...prev, [key]: value }));
+
+  const scaleMicrosFromBaseline = (ratio: number) => {
+    const bm = baseline.current.micros;
+    const next = {} as Record<NutrientKey, string>;
+    for (const k of ALL_NUTRIENT_KEYS) next[k] = microStr(bm[k] * ratio);
+    setMicros(next);
+  };
 
   const handleServingChange = (value: string) => {
     setServing(value);
 
-    // Exact per-gram data (from a database/scan result) wins when grams are typed.
+    const b = baseline.current;
+    const newQty = parseQty(value);
+    const ratio = b.qty && b.qty > 0 && newQty && newQty > 0 ? newQty / b.qty : null;
+
+    // Exact per-gram data (from a database/scan result) wins for macros when grams are typed.
     const gramMatch = value.match(/(\d+(?:[.,]\d+)?)\s*(?:g|grams?)\b/i);
     if (draft.perGram && gramMatch) {
       const grams = parseFloat(gramMatch[1].replace(',', '.'));
@@ -114,20 +165,19 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         setProtein(round1str(draft.perGram.protein_g * grams));
         setCarbs(round1str(draft.perGram.carbs_g * grams));
         setFat(round1str(draft.perGram.fat_g * grams));
+        if (ratio !== null) scaleMicrosFromBaseline(ratio);
         return;
       }
     }
 
     // Otherwise scale everything by the quantity ratio vs the original serving
     // (works for 100g -> 50g, 2 cups -> 1 cup, 3 scoops -> 1 scoop, ...).
-    const b = baseline.current;
-    const newQty = parseQty(value);
-    if (b.qty === null || b.qty <= 0 || newQty === null || newQty <= 0) return;
-    const ratio = newQty / b.qty;
+    if (ratio === null) return;
     if (b.calories !== null) setCalories(String(Math.round(b.calories * ratio)));
     if (b.protein !== null) setProtein(round1str(b.protein * ratio));
     if (b.carbs !== null) setCarbs(round1str(b.carbs * ratio));
     if (b.fat !== null) setFat(round1str(b.fat * ratio));
+    scaleMicrosFromBaseline(ratio);
   };
 
   const handleCaloriesChange = (value: string) => {
@@ -139,6 +189,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
     if (b.protein !== null) setProtein(round1str(b.protein * ratio));
     if (b.carbs !== null) setCarbs(round1str(b.carbs * ratio));
     if (b.fat !== null) setFat(round1str(b.fat * ratio));
+    scaleMicrosFromBaseline(ratio);
   };
 
   const submit = async () => {
@@ -153,6 +204,8 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
     }
     setError(null);
     setSaving(true);
+    const microValues = {} as NutrientValues;
+    for (const k of ALL_NUTRIENT_KEYS) microValues[k] = parseFloat(micros[k]) || 0;
     try {
       await onSave({
         food_name: name.trim(),
@@ -163,6 +216,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         carbs_g: parseFloat(carbs) || 0,
         fat_g: parseFloat(fat) || 0,
         source: draft.source,
+        ...microValues,
       });
     } finally {
       setSaving(false);
@@ -258,6 +312,42 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
               onChange={(e) => setFat(e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="micro-section">
+          <button
+            type="button"
+            className="micro-toggle"
+            onClick={() => setMicrosOpen((o) => !o)}
+            aria-expanded={microsOpen}
+          >
+            <span className="field-label">Micronutrients (tap to edit)</span>
+            <ChevronDown size={16} className={`chevron${microsOpen ? ' open' : ''}`} />
+          </button>
+          {microsOpen && (
+            <div className="micro-groups">
+              {MICRO_VIEWS.map((group) => (
+                <div key={group} className="micro-group">
+                  <div className="micro-subhead">{GROUP_LABELS[group]}</div>
+                  {NUTRIENT_GROUPS[group].map((key) => (
+                    <div key={key} className="micro-field">
+                      <label className="micro-field-label">
+                        {NUTRIENT_META[key].label} ({NUTRIENT_META[key].unit})
+                      </label>
+                      <input
+                        className="input"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        value={micros[key]}
+                        onChange={(e) => setMicro(key, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {impact && (

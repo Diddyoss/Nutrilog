@@ -1551,6 +1551,416 @@ input[type='time'].input {
   outline-offset: 2px;
 }
 
+/* ============ Micronutrients: swipe card ============ */
+
+:root {
+  --nutrient-met: #51cf66;
+}
+
+.swipe-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.swipe-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.swipe-container::-webkit-scrollbar {
+  display: none;
+}
+
+.swipe-panel {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.swipe-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.swipe-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  border: none;
+  padding: 0;
+  transition: background 200ms ease, transform 200ms ease;
+}
+
+.swipe-dot.active {
+  background: var(--accent);
+  transform: scale(1.25);
+}
+
+/* ============ Nutrient pie chart ============ */
+
+.pie-card {
+  align-items: center;
+}
+
+.pie-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.pie-toggle {
+  display: flex;
+  gap: 3px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  width: 100%;
+}
+
+.pie-toggle button {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.pie-toggle button.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
+.pie-wrap {
+  position: relative;
+  width: 200px;
+  max-width: 100%;
+}
+
+.pie-svg {
+  display: block;
+  width: 100%;
+}
+
+.pie-svg circle {
+  fill: none;
+}
+
+.pie-track {
+  stroke: var(--ring-track);
+  stroke-width: 22;
+}
+
+.pie-seg {
+  stroke-width: 22;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 350ms ease-out, stroke-dasharray 350ms ease-out;
+  cursor: pointer;
+}
+
+.pie-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  padding: 0 28px;
+}
+
+.pie-met {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pie-met-of {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.pie-empty-text {
+  max-width: 150px;
+}
+
+.pie-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+  width: 100%;
+}
+
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: left;
+  padding: 2px 0;
+}
+
+.pie-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pie-legend-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pie-legend-pct {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ Nutrient breakdown table ============ */
+
+.nb-card {
+  padding: 0;
+  gap: 0;
+}
+
+.nb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.nb-body {
+  border-top: 1px solid var(--border-subtle);
+  padding: 12px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nb-add-supp {
+  margin-bottom: 4px;
+}
+
+.nb-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nb-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.nb-row-wrap {
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.nb-row-wrap:last-child {
+  border-bottom: none;
+}
+
+.nb-row-wrap.pulse {
+  animation: pulseHighlight 1200ms ease-out;
+}
+
+.nb-row {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  padding: 10px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nb-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nb-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nb-amounts {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.nb-val {
+  color: var(--text-primary);
+}
+
+.nb-pct {
+  min-width: 38px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nb-pct.met {
+  color: var(--nutrient-met);
+  font-weight: 600;
+}
+
+.nb-bar {
+  display: block;
+  height: 4px;
+  background: var(--ring-track);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.nb-fill {
+  display: block;
+  height: 100%;
+  background: var(--text-secondary);
+  border-radius: 2px;
+  transition: width 350ms var(--spring);
+}
+
+.nb-fill.met {
+  background: var(--nutrient-met);
+}
+
+.nb-contrib {
+  padding: 2px 4px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nb-contrib-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.nb-contrib-name {
+  color: var(--text-secondary);
+}
+
+.nb-contrib-amt {
+  color: var(--text-primary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.nb-contrib-more,
+.nb-contrib-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+@keyframes pulseHighlight {
+  0% {
+    background: var(--bg-elevated);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* ============ Micronutrient inputs (modals) ============ */
+
+.micro-section {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 8px;
+}
+
+.micro-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  min-height: 44px;
+  padding: 0;
+}
+
+.micro-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.micro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.micro-subhead {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.micro-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.micro-field-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.micro-field .input {
+  width: 100px;
+  flex-shrink: 0;
+}
+
 /* ============ Reduced motion ============ */
 
 @media (prefers-reduced-motion: reduce) {
