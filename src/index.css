@@ -796,10 +796,17 @@ input[type='time'].input {
 .sheet-content {
   padding: 16px;
   overflow-y: auto;
-  min-height: 300px;
+  min-height: 280px;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.sheet-footer {
+  flex-shrink: 0;
+  padding: 8px 16px 12px;
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* ============ Scan tab ============ */
@@ -807,15 +814,10 @@ input[type='time'].input {
 .scan-tab,
 .photo-tab,
 .search-tab,
-.manual-tab,
 .scan-fallback {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.manual-tab {
-  padding-top: 16px;
 }
 
 .scan-fallback {

@@ -5,28 +5,9 @@ import { SearchTab } from './SearchTab';
 import { blankManualDraft } from '../lib/api';
 import type { FoodDraft } from '../types';
 
-type SheetTab = 'scan' | 'photo' | 'search' | 'manual';
+type SheetTab = 'scan' | 'photo' | 'search';
 
-const TAB_LABELS: Record<SheetTab, string> = {
-  scan: 'Scan',
-  photo: 'Photo',
-  search: 'Search',
-  manual: 'Manual',
-};
-
-function ManualTab({ onResult }: { onResult: (draft: FoodDraft) => void }) {
-  return (
-    <div className="manual-tab">
-      <p className="caption muted center">
-        Enter a food and its nutrition by hand. Fill in as much or as little as you know — you can
-        add macros and micronutrients on the next screen.
-      </p>
-      <button className="btn btn-primary btn-block" onClick={() => onResult(blankManualDraft())} type="button">
-        Create entry
-      </button>
-    </div>
-  );
-}
+const TAB_LABELS: Record<SheetTab, string> = { scan: 'Scan', photo: 'Photo', search: 'Search' };
 
 interface AddFoodSheetProps {
   open: boolean;
@@ -63,7 +44,15 @@ export function AddFoodSheet({ open, onClose, onResult }: AddFoodSheetProps) {
           {tab === 'scan' && <ScanTab onResult={onResult} onSwitchToPhoto={() => setTab('photo')} />}
           {tab === 'photo' && <PhotoTab onResult={onResult} />}
           {tab === 'search' && <SearchTab onResult={onResult} />}
-          {tab === 'manual' && <ManualTab onResult={onResult} />}
+        </div>
+        <div className="sheet-footer">
+          <button
+            className="btn btn-secondary btn-block"
+            onClick={() => onResult(blankManualDraft())}
+            type="button"
+          >
+            Enter food manually
+          </button>
         </div>
       </div>
     </div>
