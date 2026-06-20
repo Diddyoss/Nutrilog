@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { isMissingColumnError, stripNutrientFields } from '../lib/db';
 import { useToast } from '../components/Toast';
 import type { SupplementEntry, SupplementSaveFields } from '../types';
 
@@ -30,7 +31,12 @@ export function useSupplementLog(date: string, onChanged?: () => void) {
 
   const addEntry = useCallback(
     async (fields: SupplementSaveFields): Promise<boolean> => {
-      const { error } = await supabase.from('supplement_log').insert({ ...fields, log_date: date });
+      const row = { ...fields, log_date: date };
+      let { error } = await supabase.from('supplement_log').insert(row);
+      if (error && isMissingColumnError(error)) {
+        ({ error } = await supabase.from('supplement_log').insert(stripNutrientFields(row)));
+        if (!error) toast('Saved name only — run the latest DB migration for supplement nutrients');
+      }
       if (error) {
         toast('Could not save supplement');
         return false;

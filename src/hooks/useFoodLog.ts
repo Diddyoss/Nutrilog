@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { isMissingColumnError, stripNutrientFields } from '../lib/db';
 import { useToast } from '../components/Toast';
 import type { FoodEntry, FoodSaveFields, Meal } from '../types';
+
+const MIGRATION_NOTICE = 'Saved core values — run the latest DB migration to store micronutrients';
 
 export interface DayTotals {
   calories: number;
@@ -36,7 +39,13 @@ export function useFoodLog(date: string, onChanged?: () => void) {
 
   const addEntry = useCallback(
     async (fields: FoodSaveFields): Promise<boolean> => {
-      const { error } = await supabase.from('food_log').insert({ ...fields, log_date: date });
+      const row = { ...fields, log_date: date };
+      let { error } = await supabase.from('food_log').insert(row);
+      // If nutrient columns are missing (migration not run), retry with core fields only.
+      if (error && isMissingColumnError(error)) {
+        ({ error } = await supabase.from('food_log').insert(stripNutrientFields(row)));
+        if (!error) toast(MIGRATION_NOTICE);
+      }
       if (error) {
         toast('Could not save entry');
         return false;
@@ -50,7 +59,11 @@ export function useFoodLog(date: string, onChanged?: () => void) {
 
   const updateEntry = useCallback(
     async (id: string, fields: FoodSaveFields): Promise<boolean> => {
-      const { error } = await supabase.from('food_log').update(fields).eq('id', id);
+      let { error } = await supabase.from('food_log').update(fields).eq('id', id);
+      if (error && isMissingColumnError(error)) {
+        ({ error } = await supabase.from('food_log').update(stripNutrientFields(fields)).eq('id', id));
+        if (!error) toast(MIGRATION_NOTICE);
+      }
       if (error) {
         toast('Could not update entry');
         return false;
