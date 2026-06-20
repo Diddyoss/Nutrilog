@@ -737,6 +737,7 @@ input[type='time'].input {
 .sheet {
   width: 100%;
   max-width: 480px;
+  min-height: 55dvh;
   max-height: 90dvh;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -796,7 +797,7 @@ input[type='time'].input {
 .sheet-content {
   padding: 16px;
   overflow-y: auto;
-  min-height: 280px;
+  min-height: 0;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
