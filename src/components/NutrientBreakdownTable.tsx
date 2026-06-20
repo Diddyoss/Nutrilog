@@ -10,7 +10,7 @@ import {
 import type { NutrientGroup } from '../lib/nutrientReference';
 import type { FoodEntry, NutrientKey, NutrientValues, SupplementEntry } from '../types';
 
-const GROUPS: NutrientGroup[] = ['vitamins', 'minerals', 'fats'];
+const GROUPS: NutrientGroup[] = ['vitamins', 'minerals', 'fats', 'fatty_acids'];
 
 interface Highlight {
   key: NutrientKey;

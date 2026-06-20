@@ -58,6 +58,10 @@ create table if not exists public.food_log (
   unsaturated_fat_g numeric default 0,
   trans_fat_g numeric default 0,
   fiber_g numeric default 0,
+  omega_3_g numeric default 0,
+  omega_6_g numeric default 0,
+  monounsaturated_fat_g numeric default 0,
+  polyunsaturated_fat_g numeric default 0,
   logged_at timestamptz default now()
 );
 
@@ -115,6 +119,10 @@ create table if not exists public.supplement_log (
   potassium_mg numeric default 0,
   zinc_mg numeric default 0,
   sodium_mg numeric default 0,
+  omega_3_g numeric default 0,
+  omega_6_g numeric default 0,
+  monounsaturated_fat_g numeric default 0,
+  polyunsaturated_fat_g numeric default 0,
   logged_at timestamptz default now()
 );
 

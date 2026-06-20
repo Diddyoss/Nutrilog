@@ -17,7 +17,7 @@ import type {
   NutrientValues,
 } from '../types';
 
-const MICRO_VIEWS = ['vitamins', 'minerals', 'fats'] as const;
+const MICRO_VIEWS = ['vitamins', 'minerals', 'fats', 'fatty_acids'] as const;
 
 /** Extract the quantity from a serving string: prefers grams/ml, falls back to the first number. */
 function parseQty(s: string): number | null {

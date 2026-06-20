@@ -13,7 +13,7 @@ interface NutrientPieChartProps {
   onSegmentTap?: (key: NutrientKey) => void;
 }
 
-const VIEWS: NutrientGroup[] = ['vitamins', 'minerals', 'fats'];
+const VIEWS: NutrientGroup[] = ['vitamins', 'minerals', 'fats', 'fatty_acids'];
 const R = 70;
 const C = 2 * Math.PI * R;
 

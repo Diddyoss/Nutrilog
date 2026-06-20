@@ -36,6 +36,10 @@ const MICRO_MAP: Array<[string, string, number]> = [
   ['saturated-fat', 'saturated_fat_g', 1],
   ['trans-fat', 'trans_fat_g', 1],
   ['fiber', 'fiber_g', 1],
+  ['omega-3-fat', 'omega_3_g', 1],
+  ['omega-6-fat', 'omega_6_g', 1],
+  ['monounsaturated-fat', 'monounsaturated_fat_g', 1],
+  ['polyunsaturated-fat', 'polyunsaturated_fat_g', 1],
 ];
 
 /** Extract micronutrients for a basis suffix ('100g' or 'serving'); missing fields are omitted. */

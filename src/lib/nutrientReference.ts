@@ -1,6 +1,6 @@
 import type { FoodEntry, NutrientKey, NutrientValues, SupplementEntry } from '../types';
 
-export type NutrientGroup = 'vitamins' | 'minerals' | 'fats';
+export type NutrientGroup = 'vitamins' | 'minerals' | 'fats' | 'fatty_acids';
 
 export const NUTRIENT_GROUPS: Record<NutrientGroup, NutrientKey[]> = {
   vitamins: [
@@ -15,22 +15,30 @@ export const NUTRIENT_GROUPS: Record<NutrientGroup, NutrientKey[]> = {
   ],
   minerals: ['calcium_mg', 'iron_mg', 'magnesium_mg', 'potassium_mg', 'zinc_mg', 'sodium_mg'],
   fats: ['saturated_fat_g', 'unsaturated_fat_g', 'trans_fat_g', 'fiber_g'],
+  fatty_acids: ['omega_3_g', 'omega_6_g', 'monounsaturated_fat_g', 'polyunsaturated_fat_g'],
 };
 
 export const GROUP_LABELS: Record<NutrientGroup, string> = {
   vitamins: 'Vitamins',
   minerals: 'Minerals',
   fats: 'Fat Breakdown',
+  fatty_acids: 'Fatty Acids',
 };
 
 export const ALL_NUTRIENT_KEYS: NutrientKey[] = [
   ...NUTRIENT_GROUPS.vitamins,
   ...NUTRIENT_GROUPS.minerals,
   ...NUTRIENT_GROUPS.fats,
+  ...NUTRIENT_GROUPS.fatty_acids,
 ];
 
-/** Vitamins + minerals only — supplements don't carry fat-breakdown fields. */
-export const SUPPLEMENT_KEYS: NutrientKey[] = [...NUTRIENT_GROUPS.vitamins, ...NUTRIENT_GROUPS.minerals];
+/** Vitamins, minerals, and the supplement-relevant omega fatty acids (fish oil). */
+export const SUPPLEMENT_KEYS: NutrientKey[] = [
+  ...NUTRIENT_GROUPS.vitamins,
+  ...NUTRIENT_GROUPS.minerals,
+  'omega_3_g',
+  'omega_6_g',
+];
 
 export interface NutrientMeta {
   label: string;
@@ -63,6 +71,11 @@ export const NUTRIENT_META: Record<NutrientKey, NutrientMeta> = {
   unsaturated_fat_g: { label: 'Unsaturated Fat', unit: 'g', rdi: 44, color: '#51cf66' },
   trans_fat_g: { label: 'Trans Fat', unit: 'g', rdi: 2, color: '#868e96' },
   fiber_g: { label: 'Fibre', unit: 'g', rdi: 30, color: '#4dabf7' },
+  // Fatty acids (reference intakes)
+  omega_3_g: { label: 'Omega-3', unit: 'g', rdi: 1.6, color: '#3bc9db' },
+  omega_6_g: { label: 'Omega-6', unit: 'g', rdi: 17, color: '#9775fa' },
+  monounsaturated_fat_g: { label: 'Monounsaturated', unit: 'g', rdi: 25, color: '#ffa94d' },
+  polyunsaturated_fat_g: { label: 'Polyunsaturated', unit: 'g', rdi: 22, color: '#69db7c' },
 };
 
 type NutrientSource = Partial<Record<NutrientKey, number | null>>;

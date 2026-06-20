@@ -25,7 +25,11 @@ export type NutrientKey =
   | 'saturated_fat_g'
   | 'unsaturated_fat_g'
   | 'trans_fat_g'
-  | 'fiber_g';
+  | 'fiber_g'
+  | 'omega_3_g'
+  | 'omega_6_g'
+  | 'monounsaturated_fat_g'
+  | 'polyunsaturated_fat_g';
 
 export type NutrientValues = Record<NutrientKey, number>;
 
