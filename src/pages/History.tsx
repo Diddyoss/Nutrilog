@@ -205,7 +205,7 @@ export function History({ profile }: { profile: Profile }) {
         key={selected}
         date={selected}
         profile={profile}
-        canAdd={selected === today}
+        canAdd={selected <= today}
         onChanged={() => setRefreshKey((k) => k + 1)}
       />
 
