@@ -1,8 +1,11 @@
 interface CalorieRingProps {
+  /** Net calories for the day (food − activity). May be negative if more was burned than eaten. */
   consumed: number;
   target: number;
   /** 0–1 fraction of the waking day elapsed; null hides the outer day ring. */
   dayProgress: number | null;
+  /** Calories burned via activity today; shown as context when > 0. */
+  burned?: number;
 }
 
 const R = 84;
@@ -10,13 +13,15 @@ const C = 2 * Math.PI * R;
 const DAY_R = 102;
 const DAY_C = 2 * Math.PI * DAY_R;
 
-export function CalorieRing({ consumed, target, dayProgress }: CalorieRingProps) {
+export function CalorieRing({ consumed, target, dayProgress, burned = 0 }: CalorieRingProps) {
   const safeTarget = target > 0 ? target : 1;
   const pct = consumed / safeTarget;
-  const mainFrac = Math.min(pct, 1);
+  const mainFrac = Math.max(0, Math.min(pct, 1));
   const overFrac = pct > 1 ? Math.min(pct - 1, 1) : 0;
   const stroke = pct > 1 ? 'var(--ring-fill)' : pct >= 0.85 ? 'var(--warning)' : 'var(--ring-fill)';
   const remaining = Math.round(target - consumed);
+  const display = Math.max(0, Math.round(consumed));
+  const eaten = Math.round(consumed + burned);
 
   return (
     <div className="ring-block">
@@ -56,13 +61,18 @@ export function CalorieRing({ consumed, target, dayProgress }: CalorieRingProps)
           )}
         </svg>
         <div className="ring-center">
-          <div className="stat-giant">{Math.round(consumed)}</div>
+          <div className="stat-giant">{display}</div>
           <div className="micro-label">/ {Math.round(target)} kcal</div>
         </div>
       </div>
       <div className={`ring-remaining${pct > 1 ? ' over' : ''}`}>
         {pct > 1 ? `${Math.abs(remaining)} kcal over target` : `${remaining} kcal remaining`}
       </div>
+      {burned > 0 && (
+        <div className="ring-net caption muted">
+          {eaten} eaten · {Math.round(burned)} burned
+        </div>
+      )}
     </div>
   );
 }

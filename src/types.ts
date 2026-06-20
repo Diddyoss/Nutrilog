@@ -135,6 +135,19 @@ export type SupplementSaveFields = {
   dose: string | null;
 } & Partial<NutrientValues>;
 
+export interface ActivityEntry {
+  id: string;
+  log_date: string;
+  activity_name: string;
+  calories_burned: number;
+  logged_at: string;
+}
+
+export interface ActivitySaveFields {
+  activity_name: string;
+  calories_burned: number;
+}
+
 export interface CoachMessage {
   id: string;
   role: 'user' | 'assistant';

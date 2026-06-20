@@ -8,8 +8,11 @@ import { FoodModal } from './FoodModal';
 import { NutrientPieChart } from './NutrientPieChart';
 import { NutrientBreakdownTable } from './NutrientBreakdownTable';
 import { SupplementModal } from './SupplementModal';
+import { ActivitySection } from './ActivitySection';
+import { ActivityModal } from './ActivityModal';
 import { useFoodLog } from '../hooks/useFoodLog';
 import { useSupplementLog } from '../hooks/useSupplementLog';
+import { useActivityLog } from '../hooks/useActivityLog';
 import { ALL_NUTRIENT_KEYS, sumNutrients } from '../lib/nutrientReference';
 import { dayProgress, todayStr } from '../lib/date';
 import type { FoodDraft, FoodEntry, NutrientKey, NutrientValues, Profile } from '../types';
@@ -46,11 +49,18 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
     onChanged
   );
   const { entries: supplements, addEntry: addSupplement } = useSupplementLog(date, onChanged);
+  const {
+    entries: activities,
+    totalBurned,
+    addEntry: addActivity,
+    deleteEntry: deleteActivity,
+  } = useActivityLog(date, onChanged);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [draft, setDraft] = useState<FoodDraft | null>(null);
   const [editing, setEditing] = useState<FoodEntry | null>(null);
   const [suppOpen, setSuppOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
   const [panel, setPanel] = useState(0);
   const [highlight, setHighlight] = useState<{ key: NutrientKey; nonce: number } | null>(null);
 
@@ -59,6 +69,7 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
 
   const isToday = date === todayStr();
   const target = profile.calorie_override ?? profile.calorie_target;
+  const netCalories = totals.calories - totalBurned;
 
   const nutrientTotals = useMemo(() => sumNutrients(entries, supplements), [entries, supplements]);
   const hasNutrientData = entries.length > 0 || supplements.length > 0;
@@ -106,8 +117,9 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           <div className="swipe-panel">
             <section className="card stats-card">
               <CalorieRing
-                consumed={totals.calories}
+                consumed={netCalories}
                 target={target}
+                burned={totalBurned}
                 dayProgress={isToday ? dayProgress(profile.wake_time, profile.sleep_time) : null}
               />
               <MacroBars
@@ -139,6 +151,14 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           ))}
         </div>
       </div>
+
+      <ActivitySection
+        entries={activities}
+        totalBurned={totalBurned}
+        canAdd={canAdd}
+        onAdd={() => setActivityOpen(true)}
+        onDelete={deleteActivity}
+      />
 
       <NutrientBreakdownTable
         totals={nutrientTotals}
@@ -218,6 +238,16 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           onSave={async (fields) => {
             const ok = await addSupplement(fields);
             if (ok) setSuppOpen(false);
+          }}
+        />
+      )}
+
+      {activityOpen && (
+        <ActivityModal
+          onClose={() => setActivityOpen(false)}
+          onSave={async (fields) => {
+            const ok = await addActivity(fields);
+            if (ok) setActivityOpen(false);
           }}
         />
       )}

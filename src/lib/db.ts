@@ -23,3 +23,11 @@ export function stripNutrientFields<T extends object>(fields: T): T {
   for (const key of ALL_NUTRIENT_KEYS) delete (out as Record<string, unknown>)[key];
   return out;
 }
+
+/** True when an operation failed because the table doesn't exist (migration not run). */
+export function isMissingTableError(error: SupabaseLikeError | null | undefined): boolean {
+  if (!error) return false;
+  if (error.code === '42P01' || error.code === 'PGRST205') return true;
+  const m = (error.message ?? '').toLowerCase();
+  return m.includes('does not exist') || m.includes('could not find the table');
+}

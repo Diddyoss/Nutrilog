@@ -486,6 +486,14 @@ input[type='time'].input {
   font-weight: 600;
 }
 
+.ring-net {
+  margin-top: 4px;
+}
+
+.activity-add {
+  margin-top: 8px;
+}
+
 /* ============ Macro bars ============ */
 
 .macro-bars {
