@@ -9,9 +9,13 @@ const PRIMARY_MODEL = process.env.COACH_MODEL || 'deepseek/deepseek-v4-flash';
 const FALLBACK_MODEL = process.env.COACH_FALLBACK_MODEL || 'google/gemini-3-flash-preview';
 
 const SYSTEM_PROMPT = `You are a concise, practical nutrition coach embedded in a food tracking app.
-The user's profile and today's food log are provided with every message.
+The user's profile and today's food log are provided with every message. You may also be given
+their recent days (calorie/macro totals) and recent weight entries.
 Rules:
 - Always reference their actual numbers — never give generic advice
+- When the question is about progress, consistency or trends, use the recent days and weight
+  history (e.g. weekly averages, whether they trend over/under target, weight direction) rather
+  than only today; for "what should I eat now" type questions, today's numbers are the priority
 - Keep responses under 180 words
 - Be direct and encouraging, not preachy or repetitive
 - Singapore context: local dishes (chicken rice, laksa, roti prata, mixed rice,
@@ -89,12 +93,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
   }
 
-  const { profile, todayLog, conversationHistory, userMessage } = (req.body ?? {}) as {
-    profile?: CoachProfile;
-    todayLog?: TodayLog;
-    conversationHistory?: HistoryMessage[];
-    userMessage?: string;
-  };
+  const { profile, todayLog, conversationHistory, userMessage, recentDays, recentWeights } =
+    (req.body ?? {}) as {
+      profile?: CoachProfile;
+      todayLog?: TodayLog;
+      conversationHistory?: HistoryMessage[];
+      userMessage?: string;
+      recentDays?: Array<{ date: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }>;
+      recentWeights?: Array<{ date: string; weight_kg: number }>;
+    };
 
   if (!profile || !todayLog || !userMessage || !userMessage.trim()) {
     return res.status(400).json({ error: 'Missing profile, todayLog, or userMessage' });
@@ -105,12 +112,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     meals.map((m) => `${m.meal}: ${m.food_name} (${m.calories} kcal)`).join(', ') || 'none yet';
   const remaining = profile.calorie_target - todayLog.calories;
 
+  const days = Array.isArray(recentDays) ? recentDays : [];
+  const recentBlock = days.length
+    ? `\n\nRecent days (most recent first):\n` +
+      days
+        .map(
+          (d) =>
+            `${d.date}: ${Math.round(d.calories)} kcal | ${Math.round(d.protein_g)}g P | ${Math.round(d.carbs_g)}g C | ${Math.round(d.fat_g)}g F`
+        )
+        .join('\n')
+    : '';
+
+  const weights = Array.isArray(recentWeights) ? recentWeights : [];
+  const weightBlock = weights.length
+    ? `\n\nRecent weight: ` + weights.map((w) => `${w.weight_kg}kg (${w.date})`).join(', ')
+    : '';
+
   const enrichedMessage = `Profile: ${profile.goal} goal | ${profile.calorie_target} kcal/day | ${profile.protein_target_g}g P / ${profile.carbs_target_g}g C / ${profile.fat_target_g}g F | ${profile.activity_level} | ${profile.age}y ${profile.sex} ${profile.weight_kg}kg
 
 Today so far (${new Date().toLocaleDateString('en-SG')}):
 Consumed: ${todayLog.calories} kcal | ${todayLog.protein_g}g P | ${todayLog.carbs_g}g C | ${todayLog.fat_g}g F
 Remaining: ${remaining} kcal
-Meals logged: ${mealsText}
+Meals logged: ${mealsText}${recentBlock}${weightBlock}
 
 User message: ${userMessage}`;
 

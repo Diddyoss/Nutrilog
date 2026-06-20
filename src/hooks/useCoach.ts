@@ -35,6 +35,11 @@ export interface CoachTodayLog {
   meals: { meal: string; food_name: string; calories: number }[];
 }
 
+export interface CoachRecent {
+  days: { date: string; calories: number; protein_g: number; carbs_g: number; fat_g: number }[];
+  weights: { date: string; weight_kg: number }[];
+}
+
 interface UseCoachReturn {
   messages: CoachMessage[];
   isLoading: boolean;
@@ -63,15 +68,21 @@ function loadStored(): CoachMessage[] {
   }
 }
 
-export function useCoach(profile: Profile, todayLog: CoachTodayLog): UseCoachReturn {
+const EMPTY_RECENT: CoachRecent = { days: [], weights: [] };
+
+export function useCoach(
+  profile: Profile,
+  todayLog: CoachTodayLog,
+  recent: CoachRecent = EMPTY_RECENT
+): UseCoachReturn {
   const [messages, setMessages] = useState<CoachMessage[]>(loadStored);
   const [isLoading, setIsLoading] = useState(false);
 
   // Hold the latest context so sendMessage never closes over stale data.
-  const contextRef = useRef({ profile, todayLog });
+  const contextRef = useRef({ profile, todayLog, recent });
   useEffect(() => {
-    contextRef.current = { profile, todayLog };
-  }, [profile, todayLog]);
+    contextRef.current = { profile, todayLog, recent };
+  }, [profile, todayLog, recent]);
 
   useEffect(() => {
     try {
@@ -109,7 +120,7 @@ export function useCoach(profile: Profile, todayLog: CoachTodayLog): UseCoachRet
       setIsLoading(true);
 
       try {
-        const { profile: p, todayLog: t } = contextRef.current;
+        const { profile: p, todayLog: t, recent: r } = contextRef.current;
         const coachProfile = {
           goal: p.goal,
           activity_level: p.activity_level,
@@ -128,6 +139,8 @@ export function useCoach(profile: Profile, todayLog: CoachTodayLog): UseCoachRet
           body: JSON.stringify({
             profile: coachProfile,
             todayLog: t,
+            recentDays: r.days,
+            recentWeights: r.weights,
             conversationHistory: history,
             userMessage: trimmed,
           }),
