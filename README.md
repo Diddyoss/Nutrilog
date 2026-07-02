@@ -19,7 +19,7 @@ npx vercel dev       # full stack — runs /api functions locally (needs OPENROU
 Import the repo into Vercel (framework preset: Vite) and set these environment variables:
 
 - `OPENROUTER_API_KEY` — server-side only, used by `/api/analyze-food`
-- `OPENROUTER_MODEL` — optional, any vision-capable model (defaults to `anthropic/claude-3.5-sonnet`)
+- `OPENROUTER_MODEL` — optional, any vision-capable model (defaults to `google/gemini-3-flash-preview`)
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 

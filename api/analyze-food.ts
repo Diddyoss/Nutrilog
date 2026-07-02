@@ -1,9 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-// Any vision-capable OpenRouter model. Override with OPENROUTER_MODEL, e.g.
-// "openai/gpt-4o-mini", "google/gemini-flash-1.5", "anthropic/claude-3.5-sonnet".
-const MODEL = process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet';
+// Any vision-capable OpenRouter model. Override with OPENROUTER_MODEL.
+const MODEL = process.env.OPENROUTER_MODEL || 'google/gemini-3-flash-preview';
 
 const SYSTEM_PROMPT = `You are a nutrition expert. Analyse the food in this image and return ONLY
 a raw JSON object — no markdown, no code fences, no explanation. Structure:
@@ -51,14 +50,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'OPENROUTER_API_KEY is not configured' });
   }
 
-  const { image, description, media_type, context } = (req.body ?? {}) as {
+  const { image, media_type, context } = (req.body ?? {}) as {
     image?: string;
-    description?: string;
     media_type?: string;
     context?: string;
   };
 
-  if (!image && !description) return res.status(400).json({ error: 'No image provided' });
+  if (!image) return res.status(400).json({ error: 'No image provided' });
 
   const mediaType = media_type === 'image/png' ? 'image/png' : 'image/jpeg';
   const contextNote =
@@ -67,17 +65,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : '';
 
   // OpenAI-compatible content blocks (OpenRouter uses image_url with a data URL).
-  const userContent = image
-    ? [
-        { type: 'text', text: `Analyse this food and return the JSON.${contextNote}` },
-        { type: 'image_url', image_url: { url: `data:${mediaType};base64,${image}` } },
-      ]
-    : [
-        {
-          type: 'text',
-          text: `Analyse this food description and return the JSON. Description: "${description}"${contextNote}`,
-        },
-      ];
+  const userContent = [
+    { type: 'text', text: `Analyse this food and return the JSON.${contextNote}` },
+    { type: 'image_url', image_url: { url: `data:${mediaType};base64,${image}` } },
+  ];
 
   try {
     const r = await fetch(OPENROUTER_URL, {

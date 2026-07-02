@@ -112,8 +112,10 @@ export function useCoach(
         isLoading: true,
       };
 
+      // Cap the resent history so long chats don't grow token cost unboundedly.
       const history = messages
         .filter((m) => !m.isLoading)
+        .slice(-8)
         .map((m) => ({ role: m.role, content: m.content }));
 
       setMessages((prev) => [...prev, userMsg, placeholder]);
