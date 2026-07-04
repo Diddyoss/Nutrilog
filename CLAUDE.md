@@ -51,8 +51,14 @@ Layering rules (enforced by convention, keep them):
 | `npx vercel dev` | Full stack incl. serverless functions | Needs `OPENROUTER_API_KEY` in `.env` |
 | `npm run build` | `tsc && vite build` | Typecheck gates the build — **but only `src/`** (see warning) |
 | `npm run preview` | Serve the built bundle | Frontend only, same `/api` caveat |
+| `npm test` | `vitest run` — single-pass unit tests for `src/lib/*` | No lint script yet (see Known gaps). CI wiring not yet done — must be run locally. |
 
-There are **no test or lint scripts yet** (see Known gaps).
+**Testing:** Vitest (chosen because Vite is already the toolchain — reuses `vite.config.ts`,
+no separate transform pipeline). Tests are co-located as `<module>.test.ts` next to their
+source, currently `src/lib/{calculations,units,date,db}.test.ts`. Run `npm test` (single
+pass) or `npx vitest` (watch mode). **Adoption ratchet:** every bug fix gets a regression
+test (written to fail on the pre-fix code); every new pure function in `src/lib/` gets
+tests added with it. No numeric coverage target — the ratchet is the policy.
 
 ⚠️ **Typecheck gap:** `tsconfig.json` has `include: ["src"]`, so `api/*.ts` is never
 typechecked locally — errors there surface only when Vercel builds the deploy. Until CI
@@ -149,8 +155,8 @@ Hard rules (skill: `database-schema-evolution`):
 
 | Gap | Fix with |
 |---|---|
-| No tests, no test framework | `test-harness-bootstrap` (start with `lib/calculations.ts`, `lib/units.ts`, `lib/date.ts`, `lib/db.ts`) |
-| No CI — nothing gates pushes to prod | `ci-and-quality-tooling` |
+| Harness exists (Vitest) with first tests in `lib/{calculations,units,date,db}.ts`; other `src/lib/*` and all of `src/hooks/`, `src/components/`, `src/pages/`, `api/*` still untested | `test-harness-bootstrap` (rank next tests by the tier list; hooks/components are Tier 4 — extract pure logic first) |
+| No CI — nothing gates pushes to prod, incl. the new `npm test` | `ci-and-quality-tooling` |
 | `api/*.ts` untypechecked locally | `ci-and-quality-tooling` (tsconfig audit step) |
 | No lint/format config | `ci-and-quality-tooling` (adopt after CI is green) |
 | `coach_log` missing from `migrations/` | `database-schema-evolution` (backfill as 005 if older deployments matter) |
