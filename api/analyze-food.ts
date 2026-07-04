@@ -96,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ error: 'AI analysis failed — try again', status: r.status, detail: detail.slice(0, 600) });
     }
 
-    const data = await r.json();
+    const data = (await r.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = data?.choices?.[0]?.message?.content;
     const text = typeof raw === 'string' ? raw : '';
 

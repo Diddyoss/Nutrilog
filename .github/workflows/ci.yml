@@ -1,0 +1,32 @@
+name: CI
+
+# Push: any branch (this repo's work happens on non-main branches).
+# Pull request: gated against main, the production/default branch.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pin Node from package.json's "engines.node" field.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+          cache: 'npm'
+
+      # npm ci, NEVER npm install in CI: it installs the lockfile exactly and
+      # fails on package.json/lockfile mismatch instead of silently resolving
+      # different versions than developers run locally.
+      - run: npm ci
+
+      # The ladder — every line mirrors a script a developer runs locally.
+      # Lint/format are deliberately not added yet (deferred; see
+      # ci-and-quality-tooling skill step 6 / CLAUDE.md "Known gaps").
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
