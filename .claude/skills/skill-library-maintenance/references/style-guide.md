@@ -35,6 +35,9 @@ description: Use when <situation>, <situation>, or <situation> — <what the ski
   skill. It must be trigger-first: state WHEN to use it, in third person, before what
   it contains. Include concrete trigger phrases a user would actually type.
 - Target ≤ 500 characters. No markdown inside the description.
+- **Always double-quote the description value** and escape inner quotes (`\"…\"`).
+  Descriptions contain `Triggers:` — a colon+space inside an unquoted YAML scalar is
+  invalid YAML and can break frontmatter parsing.
 - Bad: `description: A guide to best practices for debugging.` (describes content,
   never fires). Good: `description: Use when investigating any bug, error, regression,
   or unexplained behavior — before proposing a fix. Triggers: "X is broken", "why does
