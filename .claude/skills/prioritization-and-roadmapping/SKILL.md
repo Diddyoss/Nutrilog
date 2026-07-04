@@ -48,8 +48,11 @@ NOT for:
 
 List all candidates in one place. Add any feature that shipped but isn't being
 used as a **deletion candidate** — deleting is also a feature: it refunds
-maintenance cost forever. Three to eight candidates is the useful range; with
-fewer than three, you're not prioritizing, you're rationalizing.
+maintenance cost forever. Time-box this survey to what you already know or can
+find in under 10 minutes (usage logs if they exist, or your own honest recall)
+— it's a prompt to include obvious deletions, not a separate audit project.
+Three to eight candidates is the useful range; with fewer than three, you're
+not prioritizing, you're rationalizing.
 
 ### Step 2 — Apply the senior cost/value framing to each
 
@@ -147,7 +150,9 @@ prioritized by the risk of the next planned change:
 
 In the worked example: the sync fix scored Risk 2, so a minimal test harness
 around sync (only sync) slots in immediately before it. The harness is
-justified by the fix, not by virtue.
+justified by the fix, not by virtue — follow `test-harness-bootstrap` to decide
+exactly what to test first within that scope; this skill only decided THAT a
+harness is justified now and WHERE it's scoped, not how to build it.
 
 ### Step 6 — Triage tech debt with the decision tree
 
@@ -181,7 +186,7 @@ If either answer is missing, do not answer the question — go back and produce 
 ```
 ROADMAP DECISION — <date>
 
-NEXT 3 (in order):
+NEXT (in order, UP TO 3 — see note below):
 1. <item> — <one line citing rubric: "Reach 5/Maint 5, Track A, total 22">.
    Kill criteria: <condition → action>.
 2. <item> — <rubric one-liner>. Kill criteria: <condition → action>.
@@ -195,9 +200,18 @@ ASSUMPTIONS TO REVISIT:
 - <assumption> — revisit when <trigger: date, metric, or event>
 ```
 
+**"NEXT" is a ceiling, not a quota — never pad it.** If the rubric legitimately
+clears fewer than 3 candidates this cycle (a thin roadmap is an honest output,
+not a failure), list only those and say so explicitly: "only N candidate(s)
+cleared the bar this cycle." Do not promote a low-scoring item just to fill
+three slots — that silently contradicts the scoring you just did. If MORE than
+3 candidates score close together, list the top 3 and note the next-highest in
+ASSUMPTIONS TO REVISIT with "reconsider next cycle" as the trigger, rather than
+expanding the list past 3 (a long NEXT list stops being an ordered commitment).
+
 An empty NOT-DOING list means nothing was decided — every candidate that was
-scored and didn't make the NEXT-3 appears there with its reason. Kill criteria
-travel with each NEXT-3 item so the future reviewer doesn't have to reconstruct
+scored and didn't make NEXT appears there with its reason. Kill criteria
+travel with each NEXT item so the future reviewer doesn't have to reconstruct
 intent.
 
 ## Common mistakes
@@ -237,4 +251,4 @@ intent.
 - [ ] Any infrastructure item on the list is justified by a named next change, not by abstract quality.
 - [ ] Every debt item routed through the step-6 tree; aesthetic tickets deleted.
 - [ ] Step-7 gate passed: opportunity cost and year-out maintainer written down before any build/no-build verdict.
-- [ ] Output emitted in the step-8 template: NEXT-3 with rubric citations and kill criteria, a non-empty NOT-DOING list, and assumptions with revisit triggers.
+- [ ] Output emitted in the step-8 template: NEXT list (up to 3, padded to neither more nor fewer than what legitimately cleared the bar) with rubric citations and kill criteria, a non-empty NOT-DOING list, and assumptions with revisit triggers.

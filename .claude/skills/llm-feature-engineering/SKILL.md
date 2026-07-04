@@ -41,9 +41,9 @@ Fill this in first. Every later step is checked against it:
 
 ```
 OUTPUT SCHEMA:    <exact JSON shape with types, e.g.
-                  { "food_name": string, "calories": integer, "confidence": "high"|"medium"|"low" }>
+                  { "title": string, "priority": "high"|"medium"|"low", "tags": string[] }>
 FAILURE BEHAVIOR: <what the user sees when the model fails or returns junk —
-                  e.g. "toast: 'Analysis failed — try again', entry form stays editable">
+                  e.g. "toast: 'Could not classify — try again', item stays in the untagged queue">
 BUDGET:           <max latency (e.g. p95 < 6s), max output tokens, max cost per call>
 ```
 
@@ -75,9 +75,9 @@ Keep the "note" field under 20 words.
   interpolate the user's actual numbers/state yourself:
 
   ```ts
-  const enrichedMessage = `Profile: ${profile.goal} | ${profile.calorieTarget} kcal/day
-  Today: consumed ${today.calories} kcal, remaining ${remaining} kcal
-  Items logged: ${itemsText}
+  const enrichedMessage = `Account: ${account.plan} plan | ${account.seatsUsed}/${account.seatLimit} seats used
+  This period: ${usage.callsMade} calls made, ${remaining} remaining
+  Recent items: ${itemsText}
 
   User message: ${userMessage}`;
   ```
@@ -131,7 +131,7 @@ try {
 ```
 
 **Rung 5 — Coerce EVERY field on the consumer side.** Successful parsing proves it
-was JSON, not that the types are right. Models emit `"calories": "350"`, `null`,
+was JSON, not that the types are right. Models emit `"count": "350"`, `null`,
 or omit fields entirely — even when the prompt forbids it. Never trust:
 
 ```ts
@@ -141,10 +141,10 @@ function toNum(v: unknown): number | null {
 }
 
 const result = {
-  name: String(data.name ?? 'Unknown'),
-  calories: toNum(data.calories) ?? 0,            // numbers: coerce, default
-  confidence: ['high', 'medium', 'low'].includes(data.confidence)
-    ? data.confidence : undefined,                 // enums: whitelist inclusion check
+  title: String(data.title ?? 'Untitled'),
+  count: toNum(data.count) ?? 0,                   // numbers: coerce, default
+  priority: ['high', 'medium', 'low'].includes(data.priority)
+    ? data.priority : undefined,                   // enums: whitelist inclusion check
   note: typeof data.note === 'string' ? data.note : undefined, // strings: typeof
 };
 ```
@@ -203,18 +203,32 @@ Run through this for every LLM call site:
 
 ### Step 6 — Evaluate with a golden set (no harness required)
 
-Maintain a 5-case golden set per LLM feature, stored with the code (a fixtures file
-or a markdown table):
+Maintain a 5-case golden set per LLM feature, stored with the code as a literal
+fixtures array so it's runnable, not just readable:
+
+```ts
+// llm-feature.golden.ts — re-run manually after any prompt/model change
+export const GOLDEN_CASES: { name: string; input: unknown; assert: (out: unknown) => void }[] = [
+  { name: 'typical',    input: /* the median real input */ undefined, assert: (out) => { /* schema fields present, typed, budget respected */ } },
+  { name: 'edge',       input: /* unusual but valid: huge input, multiple subjects, odd format */ undefined, assert: (out) => { /* ... */ } },
+  { name: 'adversarial',input: /* gibberish, irrelevant content, prompt-injection attempt */ undefined, assert: (out) => { /* failure behavior, not a crash */ } },
+  { name: 'empty',      input: /* blank string/image, missing optional context */ undefined, assert: (out) => { /* graceful default, not a crash */ } },
+  { name: 'hardest-seen', input: /* promote the worst real production input the day you see it */ undefined, assert: (out) => { /* ... */ } },
+];
+```
 
 1. **Typical case** — the median real input.
-2. **Edge case** — unusual but valid (huge portion, multiple subjects, odd format).
-3. **Adversarial/junk input** — irrelevant image, gibberish text, prompt-injection attempt.
+2. **Edge case** — unusual but valid (large input, multiple subjects, odd format).
+3. **Adversarial/junk input** — irrelevant content, gibberish, prompt-injection attempt.
 4. **Empty input** — blank string, blank image, missing optional context.
 5. **Hardest real case you've seen** — promote it from production the day you see it.
 
-After ANY prompt or model change, run all 5 manually (curl the endpoint or drive the
-UI) and compare each output against the step-1 contract: schema fields present and
-typed, budgets respected, junk input handled per the failure behavior.
+After ANY prompt or model change, run all 5 (call the endpoint or handler with each
+`input` and run its `assert` against the real output — a markdown table with manual
+copy-paste is an acceptable substitute only if no test runner exists yet, but the
+fixtures array is the default) and compare each output against the step-1 contract:
+schema fields present and typed, budgets respected, junk input handled per the
+failure behavior.
 
 ⛔ STOP: A prompt or model change without a golden-set re-run is an unverified
 change — do not commit it. Prompts are code with nondeterministic behavior; the
@@ -238,7 +252,7 @@ shipping, and add the regressing input as a new golden case if it was novel.
   cost and latency scale linearly with conversation length until requests exceed the
   context window. Corrective rule: cap resent history (last N messages) at the point
   where the messages array is assembled.
-- **Trusting model-emitted numbers as numbers.** `data.calories` arrives as `"350"`,
+- **Trusting model-emitted numbers as numbers.** `data.count` arrives as `"350"`,
   `null`, or missing — then arithmetic yields `NaN` that propagates into storage.
   Corrective rule: rung 5 coercion on every numeric field (`toNum(...) ?? default`)
   before the value touches state or a database.

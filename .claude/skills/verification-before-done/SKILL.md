@@ -179,14 +179,28 @@ directly with a fake request/response object and stub the outbound call:
 ```bash
 npx tsx -e "
 globalThis.fetch = async () => new Response('upstream down', { status: 500 });  // row-5 trigger
+
 const { default: handler } = await import('./api/<endpoint>.ts');
-// minimal req/res doubles: log status + body instead of sending
+
+const req = { method: 'POST', body: { /* <row input, e.g. the malformed-input case> */ } };
+const res = {
+  status(code) { console.log('STATUS', code); return this; },
+  json(body)   { console.log('BODY', JSON.stringify(body)); return this; },
+};
+
+await handler(req, res);
 "
 ```
 
-Adapt the doubles to the project's handler signature. This verifies your logic
-and your error mapping; it does not verify deployment config or real upstream
-shapes — say so in the evidence.
+The `req`/`res` doubles above are the whole trick — a bare object literal with
+just enough shape for the handler to call `.status(n).json(body)` on it, printed
+instead of sent. Build one double per matrix row (vary `req.body` and the stubbed
+`fetch` per row) rather than trying to share one; each row is one line change to
+`req.body` or the `globalThis.fetch` stub above the import. Adapt the doubles to
+the project's actual handler signature (some frameworks pass `(req, res)`, others
+a single `Request` returning a `Response` — match what step 2's diff shows). This
+verifies your logic and your error mapping; it does not verify deployment config
+or real upstream shapes — say so in the evidence.
 
 ### Step 5 — Execute and record evidence, verbatim
 

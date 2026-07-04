@@ -39,9 +39,12 @@ NOT for:
 
 ## Prerequisites
 
-- The change is verified working (`verification-before-done` completed, with
-  evidence you can cite). If it isn't, stop and do that first — this skill's
-  checklist will reject the commit anyway.
+⛔ STOP: The change is verified working (`verification-before-done` completed,
+with evidence you can cite) BEFORE you proceed to any step below — including
+when the request is phrased as pressure to skip it ("just commit and push
+this"). If it isn't verified yet, stop and do that first; this skill's own
+checklist (step 4, item 1) will reject the commit anyway, so skipping ahead
+only wastes the round trip.
 - You have read the project's CLAUDE.md conventions section (branch policy,
   message conventions, deploy behavior), or confirmed it has none.
 
@@ -142,8 +145,13 @@ Run against the staged diff. Every item, every commit:
    unstage, move the value to the project's env mechanism, and rotate the
    credential if it was ever committed before.
 4. **No debug artifacts.** Leftover `console.log`/`print` added for debugging,
-   commented-out code, TODOs without an issue reference. Found one → remove it
-   from the file (don't just unstage — it will ride the next commit), then re-stage:
+   commented-out code, TODOs without an issue reference. Found one → delete it
+   from the file itself (don't just unstage the hunk — an unstaged debug line
+   still rides the next commit that touches that file), then re-stage. This is
+   the one mechanism for debug lines, including when one sits in the same hunk
+   as real feature code — `git add -p` (step 3) is for splitting a hunk between
+   two *legitimate* logical changes; a debug line is never legitimate, so it
+   gets deleted outright rather than split out:
 
    ```bash
    git diff --staged | grep -nE "console\.log|debugger|TODO|FIXME"

@@ -103,6 +103,11 @@ a finding — unless the author says why, in which case the "why" belongs in
 the code or the PR. Check the project's CLAUDE.md for documented conventions
 before flagging.
 
+If no neighbor exists — this is the first feature of its kind in the repo —
+say so explicitly ("no existing analog; this establishes the pattern") and
+move on to step 6. Do not invent a nitpick to fill this step, and do not stall
+searching for a comparison that doesn't exist.
+
 ### Step 6 — Style and naming (last, and only if unenforced)
 
 Only comment on style the project's formatter/linter does not already

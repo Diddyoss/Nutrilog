@@ -231,7 +231,11 @@ curl -i -X POST "$BASE_URL/api/<endpoint>" \
 
 ⛔ STOP: Do not report an endpoint clean until you have run the no-auth call, the
 malformed-input call, and (if it has per-call cost) confirmed either auth or a rate/size
-bound exists. Reading the handler is not a substitute for calling it.
+bound exists. Reading the handler is not a substitute for calling it — even when the
+source makes an auth check's absence look 100% certain, platform-level middleware,
+an API gateway rule, or a reverse-proxy config can add (or fail to add) enforcement
+invisibly outside the handler's own source; the live call is what actually reaches
+the deployed system, the source is only what you intended to deploy.
 
 ### Step 4 — Anonymous-auth caveats (if the app uses anonymous sign-in)
 

@@ -180,12 +180,23 @@ Status codes are an API contract, not decoration. One rule per digit:
 Use ONE JSON error shape across every endpoint in the project so the client
 can branch without parsing prose:
 
-```json
-{ "error": "<human-readable message>", "code": "<STABLE_MACHINE_CODE>" }
+```
+Does the project already have an established error-response shape
+(check existing endpoints for the pattern, e.g. grep other files under api/)?
+├─ Yes → match it exactly, even if it's just { "error": "<message>" } with no
+│        machine code. Do not introduce a richer shape unilaterally — a second,
+│        better-designed error format that only your endpoint uses is worse
+│        than the existing plain one, because now there are two.
+└─ No established shape yet → this endpoint's shape becomes the seed. Use:
+         { "error": "<human-readable message>", "code": "<STABLE_MACHINE_CODE>" }
+         and say so explicitly in your PR/change description — note that
+         retrofitting existing endpoints to match is a follow-up, not silent
+         scope creep into unrelated files.
 ```
 
-Never fold these together: a 500 for a caller typo teaches clients to retry
-hopelessly; a 400 for your missing env var hides a config outage as user error.
+Never fold severities together regardless of which shape you land on: a 500
+for a caller typo teaches clients to retry hopelessly; a 400 for your missing
+env var hides a config outage as user error.
 
 ### Step 5 — ⛔ Cost & abuse caps (paid upstreams only)
 
@@ -258,11 +269,16 @@ handler code further. Then hand the final done-proof to
 ### Step 8 — Check typecheck coverage
 
 Serverless directories are often OUTSIDE the main `tsconfig.json` `include` —
-your CI can be green while the function has type errors. Check:
+your CI can be green while the function has type errors. Run the
+typecheck-coverage audit from `ci-and-quality-tooling` step 3, scoped to your
+new file: its full `comm`-based audit is the source of truth for the whole repo
+(re-deriving a second, narrower check here would drift from it over time). Fast
+spot-check for just this one file while you're mid-edit:
 
 ```bash
 grep -n 'include' tsconfig*.json
-# Discriminating test: is the functions dir in the compiled file set at all?
+# Quick spot-check only — run the full audit (ci-and-quality-tooling step 3)
+# before considering coverage settled:
 npx tsc --noEmit --listFiles 2>/dev/null | grep '/api/' | head -5
 ```
 
@@ -310,7 +326,7 @@ the endpoint unchecked.
 - [ ] Client/server decision made via the step-1 rule; no credential or authenticated URL appears in client code.
 - [ ] Env var has no client-exposed prefix; CLAUDE.md env table and `.env.example` updated in the same change.
 - [ ] Handler contains all six skeleton elements in order: method guard, env guard (generic to client, var named in logs), per-field 400s, bounded input, upstream timeout, shaped responses.
-- [ ] Error responses use the project-wide `{ error, code }` shape; statuses follow the taxonomy (4xx caller, 500 config, 502 upstream).
+- [ ] Error responses match the project's established shape (or, if none existed, seed one and say so explicitly); statuses follow the taxonomy (4xx caller, 500 config, 502 upstream).
 - [ ] Paid upstream: response-size cap, payload cap, input truncation, and model/tier are each explicitly set — none left at vendor defaults; auth/rate-limit follow-up routed to `security-audit`.
 - [ ] Business logic lives in extractable pure functions; the handler only validates, calls, and shapes.
 - [ ] All three curls (405, 400, 200) observed against the locally served function using the project's full-stack dev command.

@@ -36,7 +36,10 @@ NOT for:
 
 ## Prerequisites
 
-- The repo is checked out locally with its git history (`git log` returns commits).
+- The repo is checked out locally. `git log` should return commits; if it
+  returns nothing or only one (a shallow clone, or history genuinely starts
+  here), skip step 4's history-reading sub-step and rely on file-reading alone
+  for conventions — don't stall trying to manufacture history that isn't there.
 - You have a stated task, even a rough one ("add an export button"). Orientation
   without a task degenerates into aimless reading — if you truly have no task,
   time-box yourself to steps 1–2 only.
@@ -144,7 +147,10 @@ assumptions hide.
 
 The repo's history shows you how its authors want code written. Read the **3
 most recent substantive commits** — substantive means it changes source logic;
-skip lockfile-only, formatting, version-bump, and generated-file commits:
+skip lockfile-only, formatting, version-bump, and generated-file commits. If
+the repo has fewer than 3 substantive commits (young repo, or you skipped this
+per the Prerequisites shallow-clone note), read every substantive commit that
+exists, even if that's zero or one — don't block on a count you can't reach:
 
 ```bash
 git log --oneline --stat -10        # scan; pick 3 substantive ones

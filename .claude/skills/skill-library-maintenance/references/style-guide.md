@@ -123,7 +123,17 @@ pressure, with no access to the author. That reader:
 
 ## 8. Reviewer rubric (8 checks — all must be YES)
 
-Reviewers must answer each with evidence (quote or line reference), not a bare yes.
+Before scoring the 8 checks below, verify structural compliance first — the 8
+checks probe content quality and do not themselves catch a §3 section-order
+violation or a §6 length-budget miss. A skill can score 8/8 below and still
+violate §3 or §6; check those explicitly:
+
+- Section order matches §3 exactly (title+principle → when/when-not →
+  prerequisites → procedure → optional deep-dives → common mistakes → done
+  criteria). Deep-dive sections belong AFTER the procedure, never before it.
+- Line count is within §6's 150–350 budget.
+
+Reviewers must answer each of the 8 with evidence (quote or line reference), not a bare yes.
 
 1. **Trigger:** Does the description state WHEN to use the skill, trigger-first, with
    concrete phrases — and is it distinct from every sibling skill's description?

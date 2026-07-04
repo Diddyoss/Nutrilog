@@ -47,6 +47,14 @@ NOT for:
   call paid upstream APIs, and how deploys/migrations happen.
 - Know who the next users are (friends you can talk to, or strangers you can't) —
   it determines your target stage.
+- **If you lack dashboard/console access** (common for an agent session — check
+  CLAUDE.md for whether this applies here): most of this skill's checks — the
+  Step 3 migration test script, Axis 4's backup-restore test, setting a spend
+  alert, toggling auth settings — genuinely require it. You do not skip these
+  gates; you produce the exact thing a human with access needs to execute them:
+  a numbered runbook (what to click, in what order, what result confirms
+  success), delivered as part of your output. A gate marked "cannot verify,
+  human runbook attached" is honest progress; a gate silently skipped is not.
 
 ## The procedure
 
@@ -115,8 +123,21 @@ which stage gate it blocks. This list IS the productionization backlog.
 
 **Axis 3 — ABUSE & COST**
 
+⚠ Stage-gating caveat: the checklist below is written as a Stage 2 gate, but
+check this FIRST — if the app's paid endpoints are already deployed and
+callable with no auth (the common case for a solo serverless app: the endpoint
+went live at Stage 0, before any user existed to gate against), the wallet risk
+is not stage-gated at all. It is already live today, reachable by anyone who
+finds the URL, independent of whether you've invited a single friend yet.
+Confirm this explicitly before treating metering as something Stage 2 can wait
+for:
+
 - [ ] Inventory every endpoint that costs money per call (LLM calls, paid APIs,
   metered storage). List them by name with cost per call.
+- [ ] For each, check right now whether it is ALREADY unauthenticated and
+  publicly reachable (test with an unauthenticated curl from outside the app).
+  If yes, its exposure predates this whole rollout and should not wait for the
+  Stage 2 gate below — treat it as urgent regardless of current stage.
 - [ ] Each one gets rate limiting and/or a per-user quota BEFORE signups open.
   Unmetered paid endpoints + strangers = wallet drain; one `while true; do curl`
   loop is all it takes. Implementation via `serverless-api-design`.
@@ -136,7 +157,9 @@ which stage gate it blocks. This list IS the productionization backlog.
   hours" is a valid answer — but write it and tell Stage 1 users).
 - [ ] Backups enabled on the database AND restore-tested once: restore into a
   scratch project/instance, point a local client at it, verify your own data is
-  present and complete. Record the date of the successful restore test.
+  present and complete. Record the date of the successful restore test. (No
+  dashboard access this session → this becomes a human runbook item per
+  Prerequisites, not a skipped checkbox.)
 
 **Axis 5 — PRIVACY BASICS**
 
@@ -187,7 +210,9 @@ Pitfalls to design for, in writing, before coding:
   discover it from a Stage 1 friend's bug report.
 
 Migration test script — run against a non-production project/instance with a
-copy of REAL data (your own account is the perfect guinea pig):
+copy of REAL data (your own account is the perfect guinea pig). This needs
+dashboard/console access to provision the scratch instance — if you don't have
+it this session, this script becomes the numbered human runbook (Prerequisites):
 
 ```
 1. Seed: anonymous user A with real data (N rows across every user-scoped table

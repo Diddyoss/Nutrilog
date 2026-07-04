@@ -151,6 +151,14 @@ Keep a single workflow until there is a concrete reason for more (a matrix, a
 deploy job with different permissions). Two files that must stay in sync is a
 maintenance bug waiting to happen.
 
+Before writing the workflow, confirm the Node version is actually pinned
+somewhere the workflow can read: check for `.nvmrc`, or an `engines.node` field
+in `package.json` (`grep -n '"engines"' package.json`). **If neither exists, add
+`engines.node` to `package.json` now** (e.g. `"engines": { "node": ">=20" }`,
+matched to the version you develop against) — `setup-node`'s
+`node-version-file: 'package.json'` below silently resolves nothing useful
+without it, and that failure surfaces only once the workflow is pushed.
+
 ```yaml
 # .github/workflows/ci.yml
 name: CI

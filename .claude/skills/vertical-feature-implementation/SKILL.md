@@ -24,8 +24,8 @@ Use this skill when:
 NOT for:
 
 - **The schema/migration step itself** — that is owned by `database-schema-evolution`;
-  this skill delegates to it at step 2. Test: if the *whole* task is a schema change
-  with no new UI or business logic, go straight there.
+  this skill delegates to it at step 2. Discriminating test: if the *whole* task is a
+  schema change with no new UI or business logic, go straight there.
 - **A repo you can't yet navigate** — use `codebase-orientation` first. Discriminating
   test: can you name the existing feature most analogous to the one you're adding,
   and point at its files? No → orient first, then return here.
@@ -58,6 +58,14 @@ DONE MEANS:  user can do <X, the exact interaction> and sees <Y, the exact obser
              including after a page reload / app restart>
 OUT OF SCOPE: <adjacent ideas you are explicitly not doing in this slice>
 ```
+
+If the request underspecifies scope — which entity type it applies to when
+several exist, or what the value set is (e.g. "let users tag items with a
+status": every item type in the app, or one? status as free text, or a fixed
+set?) — the act of writing ONE concrete sentence forces you to pick. Do not
+silently narrow it: state the disambiguating choice as its own line under OUT
+OF SCOPE so it reads as a decision, not an assumption ("OUT OF SCOPE: the other
+two item types — this slice covers only <the one named in the story>").
 
 ⛔ STOP: The story fits in ONE sentence with no "and also". If it doesn't, split it
 into multiple slices and do them one at a time — each slice runs this whole

@@ -26,7 +26,7 @@ NOT for:
 
 - Building the whole feature around the schema change — use
   `vertical-feature-implementation`; it delegates the schema step here.
-  Test: if you're also writing UI or business logic, that skill owns the slice.
+  Discriminating test: if you're also writing UI or business logic, that skill owns the slice.
 - General bug investigation — use `systematic-debugging`. Test: if you don't yet
   know the bug is schema drift, debug first; route here once the error is a
   missing column/table or schema-cache mismatch.

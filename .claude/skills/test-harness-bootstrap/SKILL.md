@@ -101,13 +101,13 @@ Vitest path shown; node:test and pytest variants at the end of the step.
    `<module>.test.ts` unless the repo already has a `tests/` convention:
 
    ```ts
-   // src/lib/units.test.ts
+   // src/lib/pricing.test.ts
    import { describe, it, expect } from 'vitest';
-   import { kgToLbs } from './units';
+   import { applyDiscount } from './pricing';
 
-   describe('kgToLbs', () => {
-     it('converts 1 kg to 2.20462 lbs', () => {
-       expect(kgToLbs(1)).toBeCloseTo(2.20462, 4);
+   describe('applyDiscount', () => {
+     it('reduces a price by the given percentage', () => {
+       expect(applyDiscount(100, 0.2)).toBeCloseTo(80, 2);
      });
    });
    ```
@@ -127,7 +127,7 @@ Vitest path shown; node:test and pytest variants at the end of the step.
    ```
 
 6. **MUTATE the assertion to prove the harness can fail.** Change the expected
-   value to something wrong (`toBeCloseTo(3.0, 4)`), run again, and read the
+   value to something wrong (`toBeCloseTo(50, 2)`), run again, and read the
    failure output.
 
    ⛔ STOP: You have watched this test FAIL, with output that names the test,
@@ -153,9 +153,10 @@ without an error. A good first test pins known-good values, boundaries
 included:
 
 ```ts
-it('carries 12 inches up to the next foot', () => {
-  // 182.8 cm = 71.97 in, which rounds to 5'12" — must carry, not emit inch: 12
-  expect(cmToFtIn(182.8)).toEqual({ ft: 6, inch: 0 });
+it('rounds up to the next dollar at the billing boundary', () => {
+  // 19.995 rounds to 20.00, not truncates to 19.99 — the boundary the naive
+  // implementation (Math.floor(x*100)/100) gets wrong
+  expect(roundToCents(19.995)).toBe(20.00);
 });
 ```
 

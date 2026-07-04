@@ -98,6 +98,18 @@ boundary) — each probe halves the search space.
 ```
 Start: user action → UI state → client logic → network → server → database / external API
 
+⛔ STOP first: do you have interactive browser/devtools access (a human clicking,
+or a browser-automation tool), or only the code and a way to run the server?
+├─ No browser access → you cannot use the Network tab or component devtools below.
+│    Substitute instrumentation for observation at each candidate layer instead:
+│    add `console.log`/server-log statements at the UI handler's first line, at
+│    the point a network call is built, and at the server handler's entry — then
+│    have the reporter (or a browser tool) reproduce once and read the emitted
+│    output to see which layer the log output stops appearing at. That tells you
+│    the same thing the tree below tells a human with devtools; proceed reading
+│    it as "what would the logs show" rather than "what does the Network tab show".
+└─ Yes → use the tree as written below.
+
 Did the expected network request fire? (devtools → Network tab, filter by endpoint)
 ├─ No request → the failure is client-side:
 │    Did the handler run at all? (add console.log / breakpoint at its first line)

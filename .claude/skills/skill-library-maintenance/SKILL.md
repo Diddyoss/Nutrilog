@@ -31,49 +31,24 @@ NOT for:
 - **Reviewing non-skill code** — use `code-review-standards`; this skill's rubric
   applies only to files under `.claude/skills/`.
 
-## Anatomy of a good skill
+## Prerequisites
 
-A skill is a directory `.claude/skills/<skill-name>/` containing `SKILL.md` and an
-optional `references/` folder for depth.
+- Read `references/style-guide.md` in full before authoring or reviewing anything
+  — it is the binding contract for frontmatter, section order, voice, and length
+  budget. This skill governs the *workflow* of applying that contract; it does not
+  restate the contract itself (doing so would violate this skill's own duplication
+  rule the moment the two drifted out of sync).
+- Internalize the portability litmus test, applied to every sentence of every
+  skill: **"Would this sentence be true and useful in a different repo?"** Project
+  facts — names, ports, table names, vendor choices — live in the project's
+  CLAUDE.md; skills point there. Enforcement command (substitute the project's
+  name), must return nothing:
 
-**Frontmatter contract** (the part that decides whether the skill ever fires):
+  ```bash
+  grep -rni "<project-name>" .claude/skills/
+  ```
 
-- `name` MUST equal the directory name exactly (kebab-case, names the activity).
-- `description` is the only text the model sees when choosing skills. It must be
-  third person and **trigger-first**: state WHEN to use it before what it contains,
-  with concrete phrases a user would actually type ("X is broken", "add a skill").
-  A description that summarizes content ("A guide to debugging best practices")
-  never fires.
-
-**Body structure**: title + core principle, when/when-not-to-use with boundaries to
-adjacent skills, a numbered procedure with ⛔ STOP gates and copy-pasteable commands,
-common mistakes (≥ 4, from real failures), and objectively checkable done criteria.
-
-For the full contract — section order, procedure style, decision trees, length
-budget, voice — read `references/style-guide.md`. It is binding; do not restate it
-here or anywhere else.
-
-## The portability rule
-
-Skills must be true in any repo. Project facts — names, ports, table names, vendor
-choices, team conventions — live in the project's CLAUDE.md, and skills point there
-("check the project's CLAUDE.md for the env-var contract").
-
-Litmus test, applied to **every sentence** of every skill:
-
-> "Would this sentence be true and useful in a different repo?"
-
-If no: move it to CLAUDE.md and, if the skill needs it, replace it with a pointer to
-CLAUDE.md or a `<placeholder>`. Technology names are allowed as *examples or
-conditionals* ("e.g. a Vite project → Vitest"), never as assumptions.
-
-Enforcement command — must return nothing (substitute your project's name):
-
-```bash
-grep -rni "<project-name>" .claude/skills/
-```
-
-## The procedure: authoring or editing a skill
+## The procedure
 
 1. **Confirm no existing skill covers the trigger.** List the library and read every
    sibling's description — the directory name alone is not enough to judge overlap:
@@ -92,11 +67,26 @@ grep -rni "<project-name>" .claude/skills/
    │        cover the new request without edits?
    │        ├─ Yes → it's a refinement: extend that skill (add a section or
    │        │        references/ file); do NOT create a new one
-   │        └─ No  → genuinely distinct: create the new skill AND sharpen both
+   │        └─ No, but the new content is a natural extension of the sibling's
+   │        │   existing procedure (same trigger surface, one step deeper) →
+   │        │   extend the sibling's BODY and DESCRIPTION together (widen the
+   │        │   trigger phrases to cover it); do NOT create a new directory.
+   │        │   Ask this before falling through to the next branch: "if I added
+   │        │   one section to the sibling, would this request now be obviously
+   │        │   its job?" If yes, this branch applies, not the next one.
+   │        └─ No, the content belongs to a different procedure/audience entirely
+   │                 → genuinely distinct: create the new skill AND sharpen both
    │                 descriptions until neither fires on the other's requests
    │                 (re-run this test to verify)
    └─ No  → continue to step 2
    ```
+
+   The middle branch exists because "does the description already cover it" and
+   "is this the right architectural home for it" are different questions — almost
+   any genuinely new nuance fails the first without failing the second. Defaulting
+   to "create new" for every non-covered request is how the library proliferates
+   near-duplicate skills; prefer deepening an existing procedure over adding a
+   directory whenever the trigger surface is already shared.
 
    ⛔ STOP: also ask whether this should be a skill at all. If the content is a
    project fact or a one-line rule ("we use pnpm, not npm"), add a line to CLAUDE.md
