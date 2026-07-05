@@ -110,13 +110,17 @@ launch. One device = one user. There are no accounts, no login UI.
 Two tracks, interleaved (see `prioritization-and-roadmapping` skill for the method):
 
 - **Track A — polish for personal use** (compounding daily value): reliability
-  (tests on `lib/calculations.ts`, `lib/units.ts`, `lib/date.ts`, `lib/db.ts`; CI so
-  pushes to prod are gated), insight features on already-logged data (trends,
+  (✅ done 2026-07: Vitest harness on `lib/{calculations,units,date,db}` + CI running
+  typecheck/build/test on every push — next rungs: lint/format, then widening test
+  coverage per the tier list), insight features on already-logged data (trends,
   weekly summaries, coach awareness of micros), UX refinements.
 - **Track B — grow toward multi-user** (option value): real auth with anonymous-account
   linking, server-mediated writes or per-user quotas for paid endpoints, rate limiting,
-  error reporting, backups. Gate: don't start Track B items until Track A's safety net
-  (tests + CI) exists — every Track B change is riskier without it.
+  error reporting, backups. The original gate — don't start Track B until Track A's
+  safety net (tests + CI) exists — is now satisfied; Track B items are unblocked and
+  compete on the normal prioritization rubric. Note: `/api/coach` and `/api/analyze-food`
+  are unauthenticated paid endpoints live today (cost-capped but unmetered) — the
+  security-audit validation flagged this as the top Track B candidate.
 
 Rule of thumb inherited from the outgoing maintainer: reliability debt that bites
 weekly outranks speculative scale work; a feature is only worth building if it will be

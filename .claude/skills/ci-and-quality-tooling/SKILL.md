@@ -143,7 +143,12 @@ and that separation is a feature. Example for serverless functions:
 
 Re-run the audit until `comm` prints nothing. Expect the newly covered files
 to produce errors — they have never been checked; fix them as part of landing
-this rung green.
+this rung green. If an error looks alien (e.g. "property does not exist on
+type `{}`" on code that reads fine), don't guess at the cause from the message:
+reproduce it in an isolated probe file containing just the suspect pattern
+under the new tsconfig, and shrink until the trigger is obvious — newly applied
+`lib`/`types` settings change what globals like `fetch` return, and the probe
+tells you whether the fix is a type annotation, a cast, or a config change.
 
 ### Step 4 — Write ONE workflow file
 
@@ -154,10 +159,16 @@ maintenance bug waiting to happen.
 Before writing the workflow, confirm the Node version is actually pinned
 somewhere the workflow can read: check for `.nvmrc`, or an `engines.node` field
 in `package.json` (`grep -n '"engines"' package.json`). **If neither exists, add
-`engines.node` to `package.json` now** (e.g. `"engines": { "node": ">=20" }`,
-matched to the version you develop against) — `setup-node`'s
+`engines.node` to `package.json` now** — `setup-node`'s
 `node-version-file: 'package.json'` below silently resolves nothing useful
 without it, and that failure surfaces only once the workflow is pushed.
+When the repo gives you no evidence for the value, derive it in this order:
+(1) the deploy platform's build Node version if documented (CLAUDE.md or the
+platform dashboard — the human step); (2) else `node --version` on the machine
+where the project verifiably builds, pinned as `">=<that major>"` (e.g. local
+v22 → `">=20"` only if `@types/node`/deps don't demand newer, otherwise
+`">=22"`); and record in the commit body that the value is an inference to be
+checked against the deploy platform.
 
 ```yaml
 # .github/workflows/ci.yml

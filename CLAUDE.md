@@ -51,7 +51,8 @@ Layering rules (enforced by convention, keep them):
 | `npx vercel dev` | Full stack incl. serverless functions | Needs `OPENROUTER_API_KEY` in `.env` |
 | `npm run build` | `tsc && vite build` | Typecheck gates the build — **but only `src/`** (see warning) |
 | `npm run preview` | Serve the built bundle | Frontend only, same `/api` caveat |
-| `npm test` | `vitest run` — single-pass unit tests for `src/lib/*` | No lint script yet (see Known gaps). CI wiring not yet done — must be run locally. |
+| `npm test` | `vitest run` — single-pass unit tests for `src/lib/*` | Also runs in CI on every push. No lint script yet (see Known gaps). |
+| `npm run typecheck` | All three tsconfigs: `src/` + `api/` + `vite.config.ts` | This, not `npm run build`, is the full typecheck. Runs in CI. |
 
 **Testing:** Vitest (chosen because Vite is already the toolchain — reuses `vite.config.ts`,
 no separate transform pipeline). Tests are co-located as `<module>.test.ts` next to their
@@ -60,13 +61,12 @@ pass) or `npx vitest` (watch mode). **Adoption ratchet:** every bug fix gets a r
 test (written to fail on the pre-fix code); every new pure function in `src/lib/` gets
 tests added with it. No numeric coverage target — the ratchet is the policy.
 
-⚠️ **Typecheck gap:** `tsconfig.json` has `include: ["src"]`, so `api/*.ts` is never
-typechecked locally — errors there surface only when Vercel builds the deploy. Until CI
-fixes this (skill: `ci-and-quality-tooling`), check the functions explicitly after editing:
-
-```bash
-npx tsc --noEmit --strict --skipLibCheck --target es2022 --module esnext --moduleResolution bundler api/*.ts
-```
+**Typecheck coverage:** the base `tsconfig.json` covers only `src/`; `tsconfig.api.json`
+(serverless functions) and `tsconfig.node.json` (`vite.config.ts`) cover the rest.
+`npm run typecheck` runs all three and is enforced by CI (`.github/workflows/ci.yml`:
+typecheck → build → test on every push; PRs to `main` also run it). Note that CI on a
+direct push to `main` is advisory-after-the-fact — the Vercel deploy races the check;
+the real gate would be branch protection requiring the check on PRs.
 
 ## Environment contract
 
@@ -83,8 +83,7 @@ npx tsc --noEmit --strict --skipLibCheck --target es2022 --module esnext --modul
 Rules:
 - A server-side var must **never** gain a `VITE_` prefix — `VITE_*` is bundled into the
   client and public. This is the whole reason `/api` exists.
-- This table is the authoritative env list (`.env.example` currently omits the two
-  `COACH_*` vars; they are documented in a comment at the bottom of `api/coach.ts`).
+- This table is the authoritative env list; `.env.example` mirrors it (all six vars).
 - `src/lib/supabase.ts` falls back to `http://localhost:54321` / `'missing-key'` when
   unset — misconfiguration fails at **runtime**, not build time.
 
@@ -155,12 +154,10 @@ Hard rules (skill: `database-schema-evolution`):
 
 | Gap | Fix with |
 |---|---|
-| Harness exists (Vitest) with first tests in `lib/{calculations,units,date,db}.ts`; other `src/lib/*` and all of `src/hooks/`, `src/components/`, `src/pages/`, `api/*` still untested | `test-harness-bootstrap` (rank next tests by the tier list; hooks/components are Tier 4 — extract pure logic first) |
-| No CI — nothing gates pushes to prod, incl. the new `npm test` | `ci-and-quality-tooling` |
-| `api/*.ts` untypechecked locally | `ci-and-quality-tooling` (tsconfig audit step) |
-| No lint/format config | `ci-and-quality-tooling` (adopt after CI is green) |
+| Only `src/lib/{calculations,units,date,db}` tested; other `src/lib/*` and all of `src/hooks/`, `src/components/`, `src/pages/`, `api/*` still untested | `test-harness-bootstrap` (rank next tests by the tier list; hooks/components are Tier 4 — extract pure logic first) |
+| No lint/format config — the next CI rung (CI itself is green) | `ci-and-quality-tooling` step 6 |
+| CI on direct pushes to `main` is advisory (deploy races the check); no branch protection | human decision — see the CI note in Commands |
 | `coach_log` missing from `migrations/` | `database-schema-evolution` (backfill as 005 if older deployments matter) |
-| `.env.example` missing `COACH_*` vars | trivial doc fix; keep table above in sync |
 
 ## Skill index — when to reach for what
 
@@ -181,5 +178,10 @@ Hard rules (skill: `database-schema-evolution`):
 | "What should I build next", triage, roadmap | `prioritization-and-roadmapping` |
 | Multi-user, real accounts, launch readiness | `productionize-personal-app` |
 | Adding/editing skills or this file | `skill-library-maintenance` |
+
+**Delegation:** `.claude/agents/skill-executor.md` defines a Sonnet-class subagent that
+executes one task by following a named skill literally and reporting `verified:/NOT
+verified:` evidence — use it to fan out well-scoped work (tests, CI, debugging, endpoints)
+cheaply. Validated live in `docs/SKILL-VALIDATION.md`.
 
 Architecture narrative, data-flow walkthroughs, and roadmap context: `docs/ARCHITECTURE.md`.

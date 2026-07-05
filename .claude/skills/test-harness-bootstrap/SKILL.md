@@ -225,6 +225,15 @@ Is the logic under test the BRANCHING AROUND the boundary
 - **Failure output must point at the cause.** Prefer `toEqual` on a small object
   over `toBe(true)` on a computed boolean — the diff is the diagnosis. If a
   failing run wouldn't tell a stranger what broke, rewrite the assertion.
+- **Beware environment-coupled "pure" functions.** Anything calling
+  `toLocaleDateString`/`toLocaleString` with the environment default locale, or
+  reading the system timezone, is only pure relative to the machine it runs on —
+  a CI image with a different locale/TZ fails the test for reasons unrelated to
+  the code. Either pin the environment in the test (`TZ=UTC` in the test script,
+  an explicit locale argument in the assertion helper), or assert structure
+  rather than exact formatted strings. If you must assert against the runner's
+  default, say so in a comment naming the assumed locale/TZ so the failure is
+  diagnosable.
 
 ### Step 6 — Set the adoption rule, not a coverage goal
 
@@ -242,8 +251,12 @@ the script passes locally.
 
 - **Never watching a new test fail.** A wrong glob, a stale watcher, or a test
   that asserts nothing all produce green. Corrective rule: the step-2 mutation
-  gate applies to the first test of every new *kind* of test (first DOM test,
-  first async test), and regression tests must fail on pre-fix code.
+  gate applies to the first test of every new *kind* of test, and regression
+  tests must fail on pre-fix code. "New kind" means any new harness
+  *mechanism* — first DOM/jsdom test, first async test, first fake-timer test
+  (`vi.setSystemTime`), first network-stub test — because a mis-wired mechanism
+  degrades silently (e.g. a fake clock that isn't actually controlling the code
+  under test still passes whenever real time happens to cooperate).
 - **Snapshot tests as the default.** They assert everything, explain nothing,
   and train people to press "update". Corrective rule: snapshots only for
   output whose exact full shape IS the contract (e.g. a generated config file);
