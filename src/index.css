@@ -845,13 +845,21 @@ input[type='time'].input {
   }
 }
 
+/* Drag surface for swipe-to-dismiss: taller than the visible handle so it's
+   an easy grab target; touch-action none lets pointermove track the finger. */
+.sheet-grab {
+  padding: 10px 0 6px;
+  flex-shrink: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
 .sheet-handle {
   width: 36px;
   height: 4px;
   border-radius: 2px;
   background: var(--border);
-  margin: 10px auto 6px;
-  flex-shrink: 0;
+  margin: 0 auto;
 }
 
 .sheet-tabs {
@@ -1426,6 +1434,92 @@ input[type='time'].input {
   stroke: var(--text-muted);
   stroke-width: 1;
   stroke-dasharray: 3 3;
+}
+
+.cal-bar.active {
+  stroke: var(--text-primary);
+  stroke-width: 1;
+}
+
+/* ============ Chart interactivity ============ */
+
+.chart-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.chart-tip {
+  animation: tipIn 180ms ease-out;
+}
+
+@keyframes tipIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.chart-tip-bg {
+  fill: var(--bg-elevated);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-tip-val {
+  fill: var(--text-primary);
+  font-size: 10px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.chart-tip-date {
+  fill: var(--text-muted);
+  font-size: 8px;
+  text-anchor: middle;
+}
+
+/* ============ Period selector ============ */
+
+.period-selector {
+  position: relative;
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  margin: 8px 0 10px;
+}
+
+.period-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: transform 320ms var(--spring);
+  pointer-events: none;
+}
+
+.period-option {
+  flex: 1;
+  position: relative;
+  min-height: 30px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: color 150ms ease, transform 160ms var(--spring-soft);
+}
+
+.period-option:active {
+  transform: scale(0.94);
+}
+
+.period-option.active {
+  color: var(--text-primary);
 }
 
 /* ============ Onboarding ============ */

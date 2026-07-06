@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ChartTip } from './ChartTip';
 import { useMountAnimation } from '../hooks/useMountAnimation';
 import { kgToLbs, round1 } from '../lib/units';
 import type { Units, WeightEntry } from '../types';
@@ -14,6 +16,7 @@ const PAD = 12;
 export function WeightChart({ entries, units }: WeightChartProps) {
   // Drives the draw-on: dashoffset flips 1 → 0 one frame after mount.
   const ready = useMountAnimation();
+  const [active, setActive] = useState<number | null>(null);
   if (entries.length < 2) {
     return <p className="caption muted">Log your weight on a few days to see the trend.</p>;
   }
@@ -23,14 +26,10 @@ export function WeightChart({ entries, units }: WeightChartProps) {
   const max = Math.max(...values);
   const span = max - min || 1;
 
-  const points = values
-    .map((v, i) => {
-      const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
-      const y = H - PAD - ((v - min) / span) * (H - PAD * 2);
-      return `${round1(x)},${round1(y)}`;
-    })
-    .join(' ');
+  const px = (i: number) => PAD + (i / (values.length - 1)) * (W - PAD * 2);
+  const py = (v: number) => H - PAD - ((v - min) / span) * (H - PAD * 2);
 
+  const points = values.map((v, i) => `${round1(px(i))},${round1(py(v))}`).join(' ');
   const unitLabel = units === 'imperial' ? 'lbs' : 'kg';
 
   return (
@@ -43,20 +42,36 @@ export function WeightChart({ entries, units }: WeightChartProps) {
           strokeDasharray={1}
           strokeDashoffset={ready ? 0 : 1}
         />
-        {values.map((v, i) => {
-          const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
-          const y = H - PAD - ((v - min) / span) * (H - PAD * 2);
-          return (
-            <circle
-              key={i}
-              className="chart-dot"
-              cx={x}
-              cy={y}
-              r="2.5"
-              style={{ animationDelay: `${150 + i * 35}ms` }}
-            />
-          );
-        })}
+        {values.map((v, i) => (
+          <circle
+            key={i}
+            className="chart-dot"
+            cx={px(i)}
+            cy={py(v)}
+            r={active === i ? 4 : 2.5}
+            style={{ animationDelay: `${150 + i * 35}ms` }}
+          />
+        ))}
+        {/* Oversized invisible hit zones so points are tappable on touch. */}
+        {values.map((v, i) => (
+          <circle
+            key={`hit-${i}`}
+            className="chart-hit"
+            cx={px(i)}
+            cy={py(v)}
+            r={12}
+            onClick={() => setActive(active === i ? null : i)}
+          />
+        ))}
+        {active !== null && values[active] !== undefined && (
+          <ChartTip
+            x={px(active)}
+            y={py(values[active])}
+            primary={`${round1(values[active])} ${unitLabel}`}
+            secondary={entries[active].log_date.slice(5).replace('-', '/')}
+            chartWidth={W}
+          />
+        )}
       </svg>
       <div className="chart-range">
         <span className="caption muted">
