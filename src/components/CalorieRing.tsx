@@ -1,3 +1,5 @@
+import { useMountAnimation } from '../hooks/useMountAnimation';
+
 interface CalorieRingProps {
   /** Net calories for the day (food − activity). May be negative if more was burned than eaten. */
   consumed: number;
@@ -14,10 +16,13 @@ const DAY_R = 102;
 const DAY_C = 2 * Math.PI * DAY_R;
 
 export function CalorieRing({ consumed, target, dayProgress, burned = 0 }: CalorieRingProps) {
+  // First paint renders the rings empty; one frame later the real values land
+  // and the existing stroke transitions fill them from zero.
+  const ready = useMountAnimation();
   const safeTarget = target > 0 ? target : 1;
   const pct = consumed / safeTarget;
-  const mainFrac = Math.max(0, Math.min(pct, 1));
-  const overFrac = pct > 1 ? Math.min(pct - 1, 1) : 0;
+  const mainFrac = ready ? Math.max(0, Math.min(pct, 1)) : 0;
+  const overFrac = ready && pct > 1 ? Math.min(pct - 1, 1) : 0;
   const stroke = pct > 1 ? 'var(--ring-fill)' : pct >= 0.85 ? 'var(--warning)' : 'var(--ring-fill)';
   const remaining = Math.round(target - consumed);
   const display = Math.max(0, Math.round(consumed));
@@ -36,7 +41,7 @@ export function CalorieRing({ consumed, target, dayProgress, burned = 0 }: Calor
                 cy="110"
                 r={DAY_R}
                 strokeDasharray={DAY_C}
-                strokeDashoffset={DAY_C * (1 - dayProgress)}
+                strokeDashoffset={DAY_C * (1 - (ready ? dayProgress : 0))}
               />
             </>
           )}
@@ -50,7 +55,7 @@ export function CalorieRing({ consumed, target, dayProgress, burned = 0 }: Calor
             strokeDasharray={C}
             strokeDashoffset={C * (1 - mainFrac)}
           />
-          {overFrac > 0 && (
+          {pct > 1 && (
             <circle
               className="ring-over"
               cx="110"

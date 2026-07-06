@@ -210,10 +210,7 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           draft={draft}
           impact={addImpact}
           onClose={() => setDraft(null)}
-          onSave={async (fields) => {
-            const ok = await addEntry(fields);
-            if (ok) setDraft(null);
-          }}
+          onSave={(fields) => addEntry(fields)}
         />
       )}
 
@@ -225,30 +222,21 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           initialMeal={editing.meal}
           impact={editImpact}
           onClose={() => setEditing(null)}
-          onSave={async (fields) => {
-            const ok = await updateEntry(editing.id, fields);
-            if (ok) setEditing(null);
-          }}
+          onSave={(fields) => updateEntry(editing.id, fields)}
         />
       )}
 
       {suppOpen && (
         <SupplementModal
           onClose={() => setSuppOpen(false)}
-          onSave={async (fields) => {
-            const ok = await addSupplement(fields);
-            if (ok) setSuppOpen(false);
-          }}
+          onSave={(fields) => addSupplement(fields)}
         />
       )}
 
       {activityOpen && (
         <ActivityModal
           onClose={() => setActivityOpen(false)}
-          onSave={async (fields) => {
-            const ok = await addActivity(fields);
-            if (ok) setActivityOpen(false);
-          }}
+          onSave={(fields) => addActivity(fields)}
         />
       )}
     </>

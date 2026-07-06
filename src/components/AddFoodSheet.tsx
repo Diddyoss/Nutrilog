@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScanTab } from './ScanTab';
 import { PhotoTab } from './PhotoTab';
 import { SearchTab } from './SearchTab';
+import { usePresence } from '../hooks/usePresence';
 import { blankManualDraft } from '../lib/api';
 import type { FoodDraft } from '../types';
 
@@ -17,15 +18,17 @@ interface AddFoodSheetProps {
 
 export function AddFoodSheet({ open, onClose, onResult }: AddFoodSheetProps) {
   const [tab, setTab] = useState<SheetTab>('scan');
+  // Stays mounted through the exit animation after the parent flips `open`.
+  const { mounted, closing } = usePresence(open);
 
   useEffect(() => {
     if (open) setTab('scan');
   }, [open]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
-    <div className="sheet-overlay" onClick={onClose}>
+    <div className={`sheet-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add food">
         <div className="sheet-handle" />
         <div className="sheet-tabs">

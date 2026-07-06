@@ -1,3 +1,4 @@
+import { useMountAnimation } from '../hooks/useMountAnimation';
 import { kgToLbs, round1 } from '../lib/units';
 import type { Units, WeightEntry } from '../types';
 
@@ -11,6 +12,8 @@ const H = 120;
 const PAD = 12;
 
 export function WeightChart({ entries, units }: WeightChartProps) {
+  // Drives the draw-on: dashoffset flips 1 → 0 one frame after mount.
+  const ready = useMountAnimation();
   if (entries.length < 2) {
     return <p className="caption muted">Log your weight on a few days to see the trend.</p>;
   }
@@ -32,12 +35,27 @@ export function WeightChart({ entries, units }: WeightChartProps) {
 
   return (
     <div className="weight-chart">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Weight trend over the last 30 days">
-        <polyline className="chart-line" points={points} />
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Weight trend">
+        <polyline
+          className="chart-line"
+          points={points}
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={ready ? 0 : 1}
+        />
         {values.map((v, i) => {
           const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
           const y = H - PAD - ((v - min) / span) * (H - PAD * 2);
-          return <circle key={i} className="chart-dot" cx={x} cy={y} r="2.5" />;
+          return (
+            <circle
+              key={i}
+              className="chart-dot"
+              cx={x}
+              cy={y}
+              r="2.5"
+              style={{ animationDelay: `${150 + i * 35}ms` }}
+            />
+          );
         })}
       </svg>
       <div className="chart-range">

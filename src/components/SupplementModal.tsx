@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useExitTransition } from '../hooks/useExitTransition';
 import { NUTRIENT_META, SUPPLEMENT_KEYS } from '../lib/nutrientReference';
 import type { NutrientKey, SupplementSaveFields } from '../types';
 
 interface SupplementModalProps {
-  onSave: (fields: SupplementSaveFields) => Promise<void> | void;
+  /** Returns whether the save succeeded — on true the modal animates itself closed. */
+  onSave: (fields: SupplementSaveFields) => Promise<boolean> | boolean;
   onClose: () => void;
 }
 
@@ -13,6 +15,7 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { closing, requestClose } = useExitTransition(onClose);
 
   const setValue = (key: NutrientKey, v: string) => setValues((prev) => ({ ...prev, [key]: v }));
 
@@ -29,14 +32,15 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
       if (Number.isFinite(n) && n > 0) micros[key] = n;
     }
     try {
-      await onSave({ supplement_name: name.trim(), dose: dose.trim() || null, ...micros });
+      const ok = await onSave({ supplement_name: name.trim(), dose: dose.trim() || null, ...micros });
+      if (ok) requestClose();
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={requestClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2 className="modal-title">Add supplement</h2>
@@ -84,7 +88,7 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
         {error && <p className="caption error-text">{error}</p>}
 
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose} type="button">
+          <button className="btn btn-secondary" onClick={requestClose} type="button">
             Cancel
           </button>
           <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">

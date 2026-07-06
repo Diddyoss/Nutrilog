@@ -213,11 +213,12 @@ code {
   justify-content: center;
   gap: 8px;
   border: none;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms ease, transform 180ms var(--spring-soft);
 }
 
 .btn:active {
   opacity: 0.7;
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -379,10 +380,12 @@ input[type='time'].input {
   color: var(--text-secondary);
   border-radius: 8px;
   flex-shrink: 0;
+  transition: background 120ms ease, transform 160ms var(--spring-soft);
 }
 
 .icon-btn:active {
   background: var(--bg-elevated);
+  transform: scale(0.9);
 }
 
 .icon-btn:disabled {
@@ -647,6 +650,32 @@ input[type='time'].input {
   gap: 4px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border-subtle);
+  max-height: 120px; /* real rows are ~56px; gives entryOut a height to collapse from */
+  animation: entryIn 280ms var(--spring-soft) backwards;
+}
+
+@keyframes entryIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.entry-row.leaving {
+  overflow: hidden;
+  pointer-events: none;
+  animation: entryOut 220ms ease forwards;
+}
+
+@keyframes entryOut {
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-width: 0;
+  }
 }
 
 .entry-row:last-child {
@@ -690,10 +719,12 @@ input[type='time'].input {
   align-items: center;
   justify-content: center;
   z-index: 30;
+  transition: transform 200ms var(--spring);
 }
 
 .fab:active {
   opacity: 0.8;
+  transform: scale(0.9);
 }
 
 .bottom-nav {
@@ -724,10 +755,37 @@ input[type='time'].input {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.04em;
+  transition: color 150ms ease, transform 180ms var(--spring-soft);
+}
+
+.nav-item:active {
+  transform: scale(0.88);
 }
 
 .nav-item.active {
   color: var(--text-primary);
+}
+
+/* Sliding active-tab indicator: a pill on the nav's top edge that springs
+   between tabs. Width assumes the 5 equal-flex nav items. */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / 5);
+  height: 3px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 380ms var(--spring);
+}
+
+.nav-indicator::before {
+  content: '';
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--accent);
 }
 
 /* ============ Bottom sheet ============ */
@@ -740,6 +798,24 @@ input[type='time'].input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: overlayIn 220ms ease-out;
+}
+
+.sheet-overlay.closing {
+  animation: overlayOut 230ms ease forwards;
+  pointer-events: none;
+}
+
+.sheet-overlay.closing .sheet {
+  /* `to`-only + forwards: slides out from wherever the sheet currently is —
+     resting position on a tap-dismiss, or mid-drag after a flick-dismiss. */
+  animation: sheetDown 230ms var(--spring-soft) forwards;
+}
+
+@keyframes sheetDown {
+  to {
+    transform: translateY(103%);
+  }
 }
 
 .sheet {
@@ -1027,6 +1103,37 @@ input[type='time'].input {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  animation: overlayIn 200ms ease-out;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Exit: `to`-only keyframes + forwards start from the CURRENT state (works
+   even mid-gesture) and hold until the JS unmount fires after the timeout. */
+@keyframes overlayOut {
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-overlay.closing {
+  animation: overlayOut 220ms ease forwards;
+  pointer-events: none;
+}
+
+.modal-overlay.closing .modal {
+  animation: modalOut 220ms ease forwards;
+}
+
+@keyframes modalOut {
+  to {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
 }
 
 .modal {
@@ -1279,10 +1386,20 @@ input[type='time'].input {
   fill: none;
   stroke: var(--accent);
   stroke-width: 1.5;
+  /* Draw-on: the component sets pathLength=1 and flips dashoffset 1 → 0 on mount. */
+  transition: stroke-dashoffset 700ms var(--spring-soft);
 }
 
 .chart-dot {
   fill: var(--accent);
+  opacity: 0;
+  animation: chartDotIn 300ms ease forwards; /* per-dot delay set inline, staggered */
+}
+
+@keyframes chartDotIn {
+  to {
+    opacity: 1;
+  }
 }
 
 .chart-range {
@@ -1403,6 +1520,17 @@ input[type='time'].input {
   }
 }
 
+.toast.leaving {
+  animation: toastOut 260ms ease forwards;
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+}
+
 /* ============ Coach ============ */
 
 .coach-page {
@@ -1518,10 +1646,12 @@ input[type='time'].input {
   border: 1px solid var(--border);
   color: var(--text-secondary);
   font-size: 13px;
+  transition: background 120ms ease, transform 160ms var(--spring-soft);
 }
 
 .chip:active {
   background: var(--bg-elevated);
+  transform: scale(0.95);
 }
 
 .chip:disabled {
