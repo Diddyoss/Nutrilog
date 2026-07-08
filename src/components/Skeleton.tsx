@@ -1,6 +1,6 @@
 /** Shimmering placeholder block; size it inline where it's used. */
-export function Skeleton({ width, height, style }: { width?: string; height?: string; style?: React.CSSProperties }) {
-  return <div className="skeleton" style={{ width, height, ...style }} aria-hidden="true" />;
+export function Skeleton({ width, height }: { width?: string; height?: string }) {
+  return <div className="skeleton" style={{ width, height }} aria-hidden="true" />;
 }
 
 /** Placeholder for a meal-section card while the food log loads. */
