@@ -1,4 +1,5 @@
 import { Brain, CalendarDays, Home, Settings, User } from 'lucide-react';
+import { haptic } from '../lib/haptics';
 
 export type Tab = 'today' | 'history' | 'coach' | 'profile' | 'settings';
 
@@ -11,13 +12,22 @@ const TABS: { id: Tab; label: string; icon: typeof Home }[] = [
 ];
 
 export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
+  const activeIndex = TABS.findIndex((t) => t.id === tab);
   return (
     <nav className="bottom-nav">
+      <span
+        className="nav-indicator"
+        style={{ transform: `translateX(${activeIndex * 100}%)` }}
+        aria-hidden="true"
+      />
       {TABS.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           className={`nav-item${tab === id ? ' active' : ''}`}
-          onClick={() => onChange(id)}
+          onClick={() => {
+            if (id !== tab) haptic('light');
+            onChange(id);
+          }}
           aria-current={tab === id ? 'page' : undefined}
           type="button"
         >

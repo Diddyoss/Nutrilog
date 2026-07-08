@@ -213,11 +213,12 @@ code {
   justify-content: center;
   gap: 8px;
   border: none;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms ease, transform 180ms var(--spring-soft);
 }
 
 .btn:active {
   opacity: 0.7;
+  transform: scale(0.97);
 }
 
 .btn:disabled {
@@ -250,6 +251,10 @@ code {
   padding: 0 12px;
   font-size: 14px;
   appearance: none;
+}
+
+.input {
+  transition: border-color 150ms ease;
 }
 
 .input:focus {
@@ -379,10 +384,12 @@ input[type='time'].input {
   color: var(--text-secondary);
   border-radius: 8px;
   flex-shrink: 0;
+  transition: background 120ms ease, transform 160ms var(--spring-soft);
 }
 
 .icon-btn:active {
   background: var(--bg-elevated);
+  transform: scale(0.9);
 }
 
 .icon-btn:disabled {
@@ -647,6 +654,32 @@ input[type='time'].input {
   gap: 4px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border-subtle);
+  max-height: 120px; /* real rows are ~56px; gives entryOut a height to collapse from */
+  animation: entryIn 280ms var(--spring-soft) backwards;
+}
+
+@keyframes entryIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.entry-row.leaving {
+  overflow: hidden;
+  pointer-events: none;
+  animation: entryOut 220ms ease forwards;
+}
+
+@keyframes entryOut {
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-width: 0;
+  }
 }
 
 .entry-row:last-child {
@@ -690,10 +723,12 @@ input[type='time'].input {
   align-items: center;
   justify-content: center;
   z-index: 30;
+  transition: transform 200ms var(--spring);
 }
 
 .fab:active {
   opacity: 0.8;
+  transform: scale(0.9);
 }
 
 .bottom-nav {
@@ -724,10 +759,37 @@ input[type='time'].input {
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.04em;
+  transition: color 150ms ease, transform 180ms var(--spring-soft);
+}
+
+.nav-item:active {
+  transform: scale(0.88);
 }
 
 .nav-item.active {
   color: var(--text-primary);
+}
+
+/* Sliding active-tab indicator: a pill on the nav's top edge that springs
+   between tabs. Width assumes the 5 equal-flex nav items. */
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / 5);
+  height: 3px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 380ms var(--spring);
+}
+
+.nav-indicator::before {
+  content: '';
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--accent);
 }
 
 /* ============ Bottom sheet ============ */
@@ -740,6 +802,24 @@ input[type='time'].input {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: overlayIn 220ms ease-out;
+}
+
+.sheet-overlay.closing {
+  animation: overlayOut 230ms ease forwards;
+  pointer-events: none;
+}
+
+.sheet-overlay.closing .sheet {
+  /* `to`-only + forwards: slides out from wherever the sheet currently is —
+     resting position on a tap-dismiss, or mid-drag after a flick-dismiss. */
+  animation: sheetDown 230ms var(--spring-soft) forwards;
+}
+
+@keyframes sheetDown {
+  to {
+    transform: translateY(103%);
+  }
 }
 
 .sheet {
@@ -769,13 +849,21 @@ input[type='time'].input {
   }
 }
 
+/* Drag surface for swipe-to-dismiss: taller than the visible handle so it's
+   an easy grab target; touch-action none lets pointermove track the finger. */
+.sheet-grab {
+  padding: 10px 0 6px;
+  flex-shrink: 0;
+  touch-action: none;
+  cursor: grab;
+}
+
 .sheet-handle {
   width: 36px;
   height: 4px;
   border-radius: 2px;
   background: var(--border);
-  margin: 10px auto 6px;
-  flex-shrink: 0;
+  margin: 0 auto;
 }
 
 .sheet-tabs {
@@ -914,8 +1002,13 @@ input[type='time'].input {
   font-weight: 500;
 }
 
+.photo-capture {
+  transition: background 120ms ease, transform 180ms var(--spring-soft);
+}
+
 .photo-capture:active {
   background: var(--bg-elevated);
+  transform: scale(0.985);
 }
 
 .analysing {
@@ -1002,8 +1095,13 @@ input[type='time'].input {
   color: var(--text-primary);
 }
 
+.result-item {
+  transition: background 120ms ease, transform 160ms var(--spring-soft);
+}
+
 .result-item:active {
   background: var(--bg-elevated);
+  transform: scale(0.98);
 }
 
 .result-name {
@@ -1027,6 +1125,37 @@ input[type='time'].input {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  animation: overlayIn 200ms ease-out;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Exit: `to`-only keyframes + forwards start from the CURRENT state (works
+   even mid-gesture) and hold until the JS unmount fires after the timeout. */
+@keyframes overlayOut {
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-overlay.closing {
+  animation: overlayOut 220ms ease forwards;
+  pointer-events: none;
+}
+
+.modal-overlay.closing .modal {
+  animation: modalOut 220ms ease forwards;
+}
+
+@keyframes modalOut {
+  to {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
 }
 
 .modal {
@@ -1279,10 +1408,20 @@ input[type='time'].input {
   fill: none;
   stroke: var(--accent);
   stroke-width: 1.5;
+  /* Draw-on: the component sets pathLength=1 and flips dashoffset 1 → 0 on mount. */
+  transition: stroke-dashoffset 700ms var(--spring-soft);
 }
 
 .chart-dot {
   fill: var(--accent);
+  opacity: 0;
+  animation: chartDotIn 300ms ease forwards; /* per-dot delay set inline, staggered */
+}
+
+@keyframes chartDotIn {
+  to {
+    opacity: 1;
+  }
 }
 
 .chart-range {
@@ -1309,6 +1448,92 @@ input[type='time'].input {
   stroke: var(--text-muted);
   stroke-width: 1;
   stroke-dasharray: 3 3;
+}
+
+.cal-bar.active {
+  stroke: var(--text-primary);
+  stroke-width: 1;
+}
+
+/* ============ Chart interactivity ============ */
+
+.chart-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.chart-tip {
+  animation: tipIn 180ms ease-out;
+}
+
+@keyframes tipIn {
+  from {
+    opacity: 0;
+  }
+}
+
+.chart-tip-bg {
+  fill: var(--bg-elevated);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-tip-val {
+  fill: var(--text-primary);
+  font-size: 10px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.chart-tip-date {
+  fill: var(--text-muted);
+  font-size: 8px;
+  text-anchor: middle;
+}
+
+/* ============ Period selector ============ */
+
+.period-selector {
+  position: relative;
+  display: flex;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  margin: 8px 0 10px;
+}
+
+.period-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: transform 320ms var(--spring);
+  pointer-events: none;
+}
+
+.period-option {
+  flex: 1;
+  position: relative;
+  min-height: 30px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: color 150ms ease, transform 160ms var(--spring-soft);
+}
+
+.period-option:active {
+  transform: scale(0.94);
+}
+
+.period-option.active {
+  color: var(--text-primary);
 }
 
 /* ============ Onboarding ============ */
@@ -1352,6 +1577,39 @@ input[type='time'].input {
   font-size: 14px;
   color: var(--text-secondary);
   margin-top: 8px;
+}
+
+/* ============ Skeleton loaders ============ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  min-height: 12px;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
 }
 
 /* ============ Empty state & toast ============ */
@@ -1400,6 +1658,17 @@ input[type='time'].input {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.toast.leaving {
+  animation: toastOut 260ms ease forwards;
+}
+
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
   }
 }
 
@@ -1494,7 +1763,11 @@ input[type='time'].input {
   position: fixed;
   bottom: calc(56px + env(safe-area-inset-bottom));
   left: 50%;
-  transform: translateX(-50%);
+  /* --keyboard-inset (set by useKeyboardInset from visualViewport) lifts the
+     composer above the on-screen keyboard — fixed elements don't move on
+     their own when the keyboard opens. */
+  transform: translate(-50%, calc(-1 * var(--keyboard-inset, 0px)));
+  transition: transform 180ms ease-out;
   width: 100%;
   max-width: 480px;
   padding: 8px 16px;
@@ -1518,10 +1791,12 @@ input[type='time'].input {
   border: 1px solid var(--border);
   color: var(--text-secondary);
   font-size: 13px;
+  transition: background 120ms ease, transform 160ms var(--spring-soft);
 }
 
 .chip:active {
   background: var(--bg-elevated);
+  transform: scale(0.95);
 }
 
 .chip:disabled {

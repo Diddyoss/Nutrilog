@@ -71,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`,
         { headers: OFF_HEADERS }
       );
-      const data = await r.json();
+      const data = (await r.json()) as { status?: number; product?: Record<string, unknown> };
       if (!data || data.status !== 1 || !data.product) {
         return res.status(200).json({ found: false });
       }
@@ -116,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}` +
         `&search_simple=1&action=process&json=1&page_size=20`;
       const r = await fetch(url, { headers: OFF_HEADERS });
-      const data = await r.json();
+      const data = (await r.json()) as { products?: Array<Record<string, unknown>> };
 
       const results = (Array.isArray(data?.products) ? data.products : [])
         .map((p: Record<string, unknown>) => {

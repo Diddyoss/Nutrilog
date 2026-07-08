@@ -1,8 +1,14 @@
 import { useState } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useExitTransition } from '../hooks/useExitTransition';
+import { useScrollLock } from '../hooks/useScrollLock';
+import { haptic } from '../lib/haptics';
+import { scrollFocusedFieldIntoView } from '../lib/motion';
 import type { ActivitySaveFields } from '../types';
 
 interface ActivityModalProps {
-  onSave: (fields: ActivitySaveFields) => Promise<void> | void;
+  /** Returns whether the save succeeded — on true the modal animates itself closed. */
+  onSave: (fields: ActivitySaveFields) => Promise<boolean> | boolean;
   onClose: () => void;
 }
 
@@ -11,6 +17,9 @@ export function ActivityModal({ onSave, onClose }: ActivityModalProps) {
   const [kcal, setKcal] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { closing, requestClose } = useExitTransition(onClose);
+  useScrollLock();
+  useEscapeKey(requestClose);
 
   const submit = async () => {
     const burned = parseInt(kcal, 10);
@@ -25,15 +34,19 @@ export function ActivityModal({ onSave, onClose }: ActivityModalProps) {
     setError(null);
     setSaving(true);
     try {
-      await onSave({ activity_name: name.trim(), calories_burned: Math.round(burned) });
+      const ok = await onSave({ activity_name: name.trim(), calories_burned: Math.round(burned) });
+      if (ok) {
+        haptic('success');
+        requestClose();
+      }
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={requestClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} onFocus={scrollFocusedFieldIntoView}>
         <div className="modal-head">
           <h2 className="modal-title">Log activity</h2>
         </div>
@@ -65,7 +78,7 @@ export function ActivityModal({ onSave, onClose }: ActivityModalProps) {
         {error && <p className="caption error-text">{error}</p>}
 
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose} type="button">
+          <button className="btn btn-secondary" onClick={requestClose} type="button">
             Cancel
           </button>
           <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { haptic } from '../lib/haptics';
+import { prefersReducedMotion } from '../lib/motion';
 import type { FoodEntry, Meal } from '../types';
 
 export const MEALS: Meal[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
@@ -21,6 +23,7 @@ function EntryRow({
   onDelete: (id: string) => void;
 }) {
   const [armed, setArmed] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (!armed) return;
@@ -28,10 +31,23 @@ function EntryRow({
     return () => clearTimeout(t);
   }, [armed]);
 
+  // Play the row's exit animation before the actual delete mutates the list.
+  const confirmDelete = () => {
+    if (leaving) return;
+    haptic('medium');
+    setLeaving(true);
+    window.setTimeout(() => onDelete(entry.id), prefersReducedMotion() ? 0 : 220);
+  };
+
+  const arm = () => {
+    haptic('warning');
+    setArmed(true);
+  };
+
   const macros = `P${Math.round(entry.protein_g ?? 0)} C${Math.round(entry.carbs_g ?? 0)} F${Math.round(entry.fat_g ?? 0)}`;
 
   return (
-    <div className="entry-row">
+    <div className={`entry-row${leaving ? ' leaving' : ''}`}>
       <div className="entry-info">
         <div className="entry-name">{entry.food_name}</div>
         <div className="entry-meta">
@@ -45,7 +61,7 @@ function EntryRow({
       <button
         className={`icon-btn${armed ? ' armed' : ''}`}
         aria-label={armed ? 'Confirm delete' : 'Delete entry'}
-        onClick={() => (armed ? onDelete(entry.id) : setArmed(true))}
+        onClick={() => (armed ? confirmDelete() : arm())}
       >
         {armed ? <Check size={16} /> : <Trash2 size={16} />}
       </button>

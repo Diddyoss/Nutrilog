@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useExitTransition } from '../hooks/useExitTransition';
+import { useScrollLock } from '../hooks/useScrollLock';
 import { defaultMealForNow } from '../lib/date';
+import { haptic } from '../lib/haptics';
+import { scrollFocusedFieldIntoView } from '../lib/motion';
 import { MEAL_LABELS, MEALS } from './MealSection';
 import {
   ALL_NUTRIENT_KEYS,
@@ -107,7 +112,8 @@ interface FoodModalProps {
   draft: FoodDraft;
   initialMeal?: Meal;
   impact?: FoodImpact;
-  onSave: (fields: FoodSaveFields) => Promise<void> | void;
+  /** Returns whether the save succeeded — on true the modal animates itself closed. */
+  onSave: (fields: FoodSaveFields) => Promise<boolean> | boolean;
   onClose: () => void;
 }
 
@@ -127,6 +133,9 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   const [microsOpen, setMicrosOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { closing, requestClose } = useExitTransition(onClose);
+  useScrollLock();
+  useEscapeKey(requestClose);
 
   // Original values captured on open — all proportional rescaling is anchored
   // here so repeated edits never compound rounding drift.
@@ -207,7 +216,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
     const microValues = {} as NutrientValues;
     for (const k of ALL_NUTRIENT_KEYS) microValues[k] = parseFloat(micros[k]) || 0;
     try {
-      await onSave({
+      const ok = await onSave({
         food_name: name.trim(),
         serving_size: serving.trim() || null,
         meal,
@@ -218,14 +227,18 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         source: draft.source,
         ...microValues,
       });
+      if (ok) {
+        haptic('success');
+        requestClose();
+      }
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={requestClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} onFocus={scrollFocusedFieldIntoView}>
         <div className="modal-head">
           <h2 className="modal-title">{title}</h2>
           <span className="badge">{SOURCE_LABELS[draft.source]}</span>
@@ -389,7 +402,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         {error && <p className="caption error-text">{error}</p>}
 
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose} type="button">
+          <button className="btn btn-secondary" onClick={requestClose} type="button">
             Cancel
           </button>
           <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">

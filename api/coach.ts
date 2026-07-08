@@ -78,7 +78,10 @@ async function callModel(model: string, messages: ChatMessage[]): Promise<ModelR
       const text = await r.text().catch(() => '');
       return { ok: false, detail: text.slice(0, 300) || `HTTP ${r.status}` };
     }
-    const data = await r.json();
+    const data = (await r.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { total_tokens?: number };
+    };
     const reply = data?.choices?.[0]?.message?.content;
     if (typeof reply !== 'string' || !reply.trim()) return { ok: false, detail: 'empty response' };
     return { ok: true, reply: reply.trim(), totalTokens: data?.usage?.total_tokens ?? 0 };

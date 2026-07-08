@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { ScanTab } from './ScanTab';
 import { PhotoTab } from './PhotoTab';
 import { SearchTab } from './SearchTab';
+import { useDragDismiss } from '../hooks/useDragDismiss';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import { usePresence } from '../hooks/usePresence';
+import { useScrollLock } from '../hooks/useScrollLock';
 import { blankManualDraft } from '../lib/api';
 import type { FoodDraft } from '../types';
 
@@ -17,17 +21,32 @@ interface AddFoodSheetProps {
 
 export function AddFoodSheet({ open, onClose, onResult }: AddFoodSheetProps) {
   const [tab, setTab] = useState<SheetTab>('scan');
+  // Stays mounted through the exit animation after the parent flips `open`.
+  const { mounted, closing } = usePresence(open);
+  // Drag the handle to dismiss: past 35% height or a downward flick closes;
+  // the exit animation continues from the dragged position.
+  const { targetRef, handleProps } = useDragDismiss({ onDismiss: onClose });
+  useScrollLock(mounted);
+  useEscapeKey(onClose, open);
 
   useEffect(() => {
     if (open) setTab('scan');
   }, [open]);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
-    <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add food">
-        <div className="sheet-handle" />
+    <div className={`sheet-overlay${closing ? ' closing' : ''}`} onClick={onClose}>
+      <div
+        className="sheet"
+        ref={targetRef}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Add food"
+      >
+        <div className="sheet-grab" {...handleProps}>
+          <div className="sheet-handle" />
+        </div>
         <div className="sheet-tabs">
           {(Object.keys(TAB_LABELS) as SheetTab[]).map((t) => (
             <button

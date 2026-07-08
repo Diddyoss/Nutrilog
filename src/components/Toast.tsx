@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 interface ToastItem {
   id: number;
   message: string;
+  leaving: boolean;
 }
 
 const ToastContext = createContext<{ toast: (message: string) => void }>({ toast: () => {} });
@@ -14,8 +15,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const toast = useCallback((message: string) => {
     const id = ++nextId.current;
-    setToasts((t) => [...t, { id, message }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+    setToasts((t) => [...t, { id, message, leaving: false }]);
+    // Two-phase removal: mark leaving (plays toastOut), then actually remove.
+    setTimeout(() => setToasts((t) => t.map((x) => (x.id === id ? { ...x, leaving: true } : x))), 3000);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3320);
   }, []);
 
   return (
@@ -23,7 +26,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="toast-container" role="status" aria-live="polite">
         {toasts.map((t) => (
-          <div key={t.id} className="toast">
+          <div key={t.id} className={`toast${t.leaving ? ' leaving' : ''}`}>
             {t.message}
           </div>
         ))}

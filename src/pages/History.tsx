@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DayView } from '../components/DayView';
 import { CaloriesChart } from '../components/CaloriesChart';
+import { PeriodSelector } from '../components/PeriodSelector';
 import { WeightChart } from '../components/WeightChart';
 import { supabase } from '../lib/supabase';
 import { addDays, formatShortDate, toDateStr, todayStr, weekdayShort } from '../lib/date';
+import { aggregateWeekly, isWeeklyPeriod, PERIOD_DAYS, type ChartPeriod } from '../lib/trends';
 import type { Profile, WeightEntry } from '../types';
 
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
@@ -27,6 +29,8 @@ export function History({ profile }: { profile: Profile }) {
   const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
   const [dailyCalories, setDailyCalories] = useState<{ date: string; calories: number }[]>([]);
   const [weights, setWeights] = useState<WeightEntry[]>([]);
+  const [calPeriod, setCalPeriod] = useState<ChartPeriod>('1M');
+  const [weightPeriod, setWeightPeriod] = useState<ChartPeriod>('1M');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const calTarget = profile.calorie_override ?? profile.calorie_target;
@@ -104,46 +108,71 @@ export function History({ profile }: { profile: Profile }) {
   }, [profile]);
 
   const loadTrends = useCallback(async () => {
-    // Daily net calorie totals (food minus activity) across the last 14 days,
-    // zero-filled for continuity — matches the calorie ring.
-    const calFrom = toDateStr(addDays(new Date(), -13));
-    const { data: calData } = await supabase
-      .from('food_log')
-      .select('log_date, calories')
-      .gte('log_date', calFrom);
+    // Daily net calorie totals (food minus activity) over the selected period,
+    // zero-filled for continuity — matches the calorie ring. Long periods
+    // (3M/All) collapse to weekly means via aggregateWeekly.
+    const calDays = PERIOD_DAYS[calPeriod];
+    let calQuery = supabase.from('food_log').select('log_date, calories');
+    if (calDays !== null) calQuery = calQuery.gte('log_date', toDateStr(addDays(new Date(), -(calDays - 1))));
+    const { data: calData } = await calQuery;
     const sums = new Map<string, number>();
     for (const row of (calData ?? []) as { log_date: string; calories: number }[]) {
       sums.set(row.log_date, (sums.get(row.log_date) ?? 0) + (row.calories ?? 0));
     }
 
-    const { data: actData } = await supabase
-      .from('activity_log')
-      .select('log_date, calories_burned')
-      .gte('log_date', calFrom);
+    let actQuery = supabase.from('activity_log').select('log_date, calories_burned');
+    if (calDays !== null) actQuery = actQuery.gte('log_date', toDateStr(addDays(new Date(), -(calDays - 1))));
+    const { data: actData } = await actQuery;
     const burned = new Map<string, number>();
     for (const row of (actData ?? []) as { log_date: string; calories_burned: number }[]) {
       burned.set(row.log_date, (burned.get(row.log_date) ?? 0) + (row.calories_burned ?? 0));
     }
 
+    // Zero-fill the window: fixed periods span exactly N days; "All" spans
+    // from the earliest logged date to today.
+    const earliest = [...sums.keys()].sort()[0];
+    const spanDays =
+      calDays ??
+      (earliest
+        ? Math.round((Date.parse(todayStr()) - Date.parse(earliest)) / 86_400_000) + 1
+        : 0);
     const days: { date: string; calories: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
+    for (let i = spanDays - 1; i >= 0; i--) {
       const ds = toDateStr(addDays(new Date(), -i));
       days.push({ date: ds, calories: Math.max(0, (sums.get(ds) ?? 0) - (burned.get(ds) ?? 0)) });
     }
-    setDailyCalories(days);
+    setDailyCalories(
+      isWeeklyPeriod(calPeriod)
+        ? aggregateWeekly(days.map((d) => ({ date: d.date, value: d.calories }))).map((w) => ({
+            date: w.date,
+            calories: Math.round(w.value),
+          }))
+        : days
+    );
 
-    // Weight, last 30 days, latest entry per day.
-    const wFrom = toDateStr(addDays(new Date(), -30));
-    const { data: wData } = await supabase
+    // Weight over the selected period, latest entry per day; weekly means on
+    // long periods (sparse days only — no zero-fill for weight).
+    const wDays = PERIOD_DAYS[weightPeriod];
+    let wQuery = supabase
       .from('weight_log')
       .select('id, log_date, weight_kg')
-      .gte('log_date', wFrom)
       .order('log_date', { ascending: true })
       .order('logged_at', { ascending: true });
+    if (wDays !== null) wQuery = wQuery.gte('log_date', toDateStr(addDays(new Date(), -wDays)));
+    const { data: wData } = await wQuery;
     const byDay = new Map<string, WeightEntry>();
     for (const row of (wData ?? []) as WeightEntry[]) byDay.set(row.log_date, row);
-    setWeights([...byDay.values()]);
-  }, []);
+    const daily = [...byDay.values()];
+    setWeights(
+      isWeeklyPeriod(weightPeriod)
+        ? aggregateWeekly(daily.map((e) => ({ date: e.log_date, value: e.weight_kg }))).map((w) => ({
+            id: `wk-${w.date}`,
+            log_date: w.date,
+            weight_kg: Math.round(w.value * 10) / 10,
+          }))
+        : daily
+    );
+  }, [calPeriod, weightPeriod]);
 
   useEffect(() => {
     loadMonth();
@@ -256,12 +285,22 @@ export function History({ profile }: { profile: Profile }) {
       </section>
 
       <section className="card">
-        <div className="micro-label">Net calorie trend · 14 days</div>
-        <CaloriesChart days={dailyCalories} target={calTarget} />
+        <div className="micro-label">Net calorie trend</div>
+        <PeriodSelector value={calPeriod} onChange={setCalPeriod} />
+        <CaloriesChart
+          days={dailyCalories}
+          target={calTarget}
+          rangeLabel={
+            isWeeklyPeriod(calPeriod)
+              ? `weekly avg · ${dailyCalories.length} wk`
+              : `last ${dailyCalories.length} days`
+          }
+        />
       </section>
 
       <section className="card">
-        <div className="micro-label">Weight trend · 30 days</div>
+        <div className="micro-label">Weight trend</div>
+        <PeriodSelector value={weightPeriod} onChange={setWeightPeriod} />
         <WeightChart entries={weights} units={profile.units} />
       </section>
     </div>

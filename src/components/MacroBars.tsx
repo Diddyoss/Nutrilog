@@ -1,3 +1,5 @@
+import { useMountAnimation } from '../hooks/useMountAnimation';
+
 interface MacroBarsProps {
   protein: { consumed: number; target: number };
   carbs: { consumed: number; target: number };
@@ -15,8 +17,10 @@ function MacroBar({
   target: number;
   colorClass: 'protein' | 'carbs' | 'fat';
 }) {
+  // Bars render at 0 width on first paint, then transition to the real value.
+  const ready = useMountAnimation();
   const safeTarget = target > 0 ? target : 1;
-  const pct = Math.min(100, (consumed / safeTarget) * 100);
+  const pct = ready ? Math.min(100, (consumed / safeTarget) * 100) : 0;
   const remaining = Math.round(target - consumed);
   const c = Math.round(consumed);
 
