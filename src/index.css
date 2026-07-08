@@ -253,6 +253,10 @@ code {
   appearance: none;
 }
 
+.input {
+  transition: border-color 150ms ease;
+}
+
 .input:focus {
   outline: none;
   border-color: var(--text-primary);
@@ -998,8 +1002,13 @@ input[type='time'].input {
   font-weight: 500;
 }
 
+.photo-capture {
+  transition: background 120ms ease, transform 180ms var(--spring-soft);
+}
+
 .photo-capture:active {
   background: var(--bg-elevated);
+  transform: scale(0.985);
 }
 
 .analysing {
@@ -1086,8 +1095,13 @@ input[type='time'].input {
   color: var(--text-primary);
 }
 
+.result-item {
+  transition: background 120ms ease, transform 160ms var(--spring-soft);
+}
+
 .result-item:active {
   background: var(--bg-elevated);
+  transform: scale(0.98);
 }
 
 .result-name {
@@ -1565,6 +1579,39 @@ input[type='time'].input {
   margin-top: 8px;
 }
 
+/* ============ Skeleton loaders ============ */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  min-height: 12px;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+}
+
 /* ============ Empty state & toast ============ */
 
 .empty-state {
@@ -1716,7 +1763,11 @@ input[type='time'].input {
   position: fixed;
   bottom: calc(56px + env(safe-area-inset-bottom));
   left: 50%;
-  transform: translateX(-50%);
+  /* --keyboard-inset (set by useKeyboardInset from visualViewport) lifts the
+     composer above the on-screen keyboard — fixed elements don't move on
+     their own when the keyboard opens. */
+  transform: translate(-50%, calc(-1 * var(--keyboard-inset, 0px)));
+  transition: transform 180ms ease-out;
   width: 100%;
   max-width: 480px;
   padding: 8px 16px;

@@ -22,7 +22,10 @@ src/
   pages/                Today, History, CoachPage, Profile, Settings, Onboarding
   components/           22 presentational/interactive components (modals, charts, tabs)
   hooks/                ALL Supabase data access lives here (useFoodLog, useProfile,
-                        useSupplementLog, useActivityLog, useCoach). UI never queries directly
+                        useSupplementLog, useActivityLog, useCoach) — UI never queries
+                        directly — plus UI interaction hooks (useExitTransition, usePresence,
+                        useDragDismiss, useMountAnimation, useScrollLock, useEscapeKey,
+                        useKeyboardInset)
   lib/
     supabase.ts         Client + ensureSession() (anonymous sign-in on first launch)
     api.ts              Client for the food endpoints (/api/analyze-food, /api/search-food);

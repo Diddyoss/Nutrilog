@@ -1,5 +1,9 @@
 import { useState } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useExitTransition } from '../hooks/useExitTransition';
+import { useScrollLock } from '../hooks/useScrollLock';
+import { haptic } from '../lib/haptics';
+import { scrollFocusedFieldIntoView } from '../lib/motion';
 import type { ActivitySaveFields } from '../types';
 
 interface ActivityModalProps {
@@ -14,6 +18,8 @@ export function ActivityModal({ onSave, onClose }: ActivityModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { closing, requestClose } = useExitTransition(onClose);
+  useScrollLock();
+  useEscapeKey(requestClose);
 
   const submit = async () => {
     const burned = parseInt(kcal, 10);
@@ -29,7 +35,10 @@ export function ActivityModal({ onSave, onClose }: ActivityModalProps) {
     setSaving(true);
     try {
       const ok = await onSave({ activity_name: name.trim(), calories_burned: Math.round(burned) });
-      if (ok) requestClose();
+      if (ok) {
+        haptic('success');
+        requestClose();
+      }
     } finally {
       setSaving(false);
     }
@@ -37,7 +46,7 @@ export function ActivityModal({ onSave, onClose }: ActivityModalProps) {
 
   return (
     <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={requestClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} onFocus={scrollFocusedFieldIntoView}>
         <div className="modal-head">
           <h2 className="modal-title">Log activity</h2>
         </div>

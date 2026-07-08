@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { haptic } from '../lib/haptics';
 import { prefersReducedMotion } from '../lib/motion';
 
 interface DragDismissOptions {
@@ -45,6 +46,7 @@ export function useDragDismiss({ onDismiss, threshold = 0.35, velocity = 0.5 }: 
     window.removeEventListener('pointermove', onPointerMove);
     const dy = d.lastY - d.startY;
     if (dy > 0 && (d.v > velocity || dy > el.offsetHeight * threshold)) {
+      haptic('medium');
       dismissRef.current(); // exit animation takes over from the dragged position
       return;
     }

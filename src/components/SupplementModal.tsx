@@ -1,5 +1,9 @@
 import { useState } from 'react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useExitTransition } from '../hooks/useExitTransition';
+import { useScrollLock } from '../hooks/useScrollLock';
+import { haptic } from '../lib/haptics';
+import { scrollFocusedFieldIntoView } from '../lib/motion';
 import { NUTRIENT_META, SUPPLEMENT_KEYS } from '../lib/nutrientReference';
 import type { NutrientKey, SupplementSaveFields } from '../types';
 
@@ -16,6 +20,8 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { closing, requestClose } = useExitTransition(onClose);
+  useScrollLock();
+  useEscapeKey(requestClose);
 
   const setValue = (key: NutrientKey, v: string) => setValues((prev) => ({ ...prev, [key]: v }));
 
@@ -33,7 +39,10 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
     }
     try {
       const ok = await onSave({ supplement_name: name.trim(), dose: dose.trim() || null, ...micros });
-      if (ok) requestClose();
+      if (ok) {
+        haptic('success');
+        requestClose();
+      }
     } finally {
       setSaving(false);
     }
@@ -41,7 +50,7 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
 
   return (
     <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={requestClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} onFocus={scrollFocusedFieldIntoView}>
         <div className="modal-head">
           <h2 className="modal-title">Add supplement</h2>
         </div>

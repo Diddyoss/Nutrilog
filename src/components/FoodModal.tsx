@@ -1,7 +1,11 @@
 import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useExitTransition } from '../hooks/useExitTransition';
+import { useScrollLock } from '../hooks/useScrollLock';
 import { defaultMealForNow } from '../lib/date';
+import { haptic } from '../lib/haptics';
+import { scrollFocusedFieldIntoView } from '../lib/motion';
 import { MEAL_LABELS, MEALS } from './MealSection';
 import {
   ALL_NUTRIENT_KEYS,
@@ -130,6 +134,8 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { closing, requestClose } = useExitTransition(onClose);
+  useScrollLock();
+  useEscapeKey(requestClose);
 
   // Original values captured on open — all proportional rescaling is anchored
   // here so repeated edits never compound rounding drift.
@@ -221,7 +227,10 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         source: draft.source,
         ...microValues,
       });
-      if (ok) requestClose();
+      if (ok) {
+        haptic('success');
+        requestClose();
+      }
     } finally {
       setSaving(false);
     }
@@ -229,7 +238,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
 
   return (
     <div className={`modal-overlay${closing ? ' closing' : ''}`} onClick={requestClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} onFocus={scrollFocusedFieldIntoView}>
         <div className="modal-head">
           <h2 className="modal-title">{title}</h2>
           <span className="badge">{SOURCE_LABELS[draft.source]}</span>

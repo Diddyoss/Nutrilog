@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
 import { MealSection, MEALS, MEAL_LABELS } from './MealSection';
+import { MealSectionSkeleton } from './Skeleton';
 import { AddFoodSheet } from './AddFoodSheet';
 import { FoodModal } from './FoodModal';
 import { NutrientPieChart } from './NutrientPieChart';
@@ -15,6 +16,7 @@ import { useSupplementLog } from '../hooks/useSupplementLog';
 import { useActivityLog } from '../hooks/useActivityLog';
 import { ALL_NUTRIENT_KEYS, sumNutrients } from '../lib/nutrientReference';
 import { dayProgress, todayStr } from '../lib/date';
+import { haptic } from '../lib/haptics';
 import type { FoodDraft, FoodEntry, NutrientKey, NutrientValues, Profile } from '../types';
 
 interface DayViewProps {
@@ -169,7 +171,13 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
         onAddSupplement={canAdd ? () => setSuppOpen(true) : undefined}
       />
 
-      {!loading && entries.length === 0 ? (
+      {loading ? (
+        <div className="meals">
+          <MealSectionSkeleton />
+          <MealSectionSkeleton />
+          <MealSectionSkeleton />
+        </div>
+      ) : entries.length === 0 ? (
         <div className="empty-state">
           <p>Nothing logged {isToday ? 'yet today' : 'on this day'}.</p>
           {canAdd && <p className="muted">Tap + to log your first meal.</p>}
@@ -189,7 +197,15 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
       )}
 
       {canAdd && (
-        <button className="fab" onClick={() => setSheetOpen(true)} aria-label="Add food" type="button">
+        <button
+          className="fab"
+          onClick={() => {
+            haptic('light');
+            setSheetOpen(true);
+          }}
+          aria-label="Add food"
+          type="button"
+        >
           <Plus size={26} />
         </button>
       )}

@@ -3,7 +3,9 @@ import { ScanTab } from './ScanTab';
 import { PhotoTab } from './PhotoTab';
 import { SearchTab } from './SearchTab';
 import { useDragDismiss } from '../hooks/useDragDismiss';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 import { usePresence } from '../hooks/usePresence';
+import { useScrollLock } from '../hooks/useScrollLock';
 import { blankManualDraft } from '../lib/api';
 import type { FoodDraft } from '../types';
 
@@ -24,6 +26,8 @@ export function AddFoodSheet({ open, onClose, onResult }: AddFoodSheetProps) {
   // Drag the handle to dismiss: past 35% height or a downward flick closes;
   // the exit animation continues from the dragged position.
   const { targetRef, handleProps } = useDragDismiss({ onDismiss: onClose });
+  useScrollLock(mounted);
+  useEscapeKey(onClose, open);
 
   useEffect(() => {
     if (open) setTab('scan');

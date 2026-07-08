@@ -1,4 +1,5 @@
 import { Brain, CalendarDays, Home, Settings, User } from 'lucide-react';
+import { haptic } from '../lib/haptics';
 
 export type Tab = 'today' | 'history' | 'coach' | 'profile' | 'settings';
 
@@ -23,7 +24,10 @@ export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) =>
         <button
           key={id}
           className={`nav-item${tab === id ? ' active' : ''}`}
-          onClick={() => onChange(id)}
+          onClick={() => {
+            if (id !== tab) haptic('light');
+            onChange(id);
+          }}
           aria-current={tab === id ? 'page' : undefined}
           type="button"
         >

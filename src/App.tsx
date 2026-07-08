@@ -7,6 +7,7 @@ import { CoachPage } from './pages/CoachPage';
 import { ProfilePage } from './pages/Profile';
 import { SettingsPage } from './pages/Settings';
 import { Onboarding } from './pages/Onboarding';
+import { useKeyboardInset } from './hooks/useKeyboardInset';
 import { useProfile } from './hooks/useProfile';
 import { isSupabaseConfigured } from './lib/supabase';
 
@@ -51,6 +52,7 @@ function ErrorScreen({ onRetry }: { onRetry: () => void }) {
 export default function App() {
   const { profile, status, reload, saveProfile, updateProfile } = useProfile();
   const [tab, setTab] = useState<Tab>('today');
+  useKeyboardInset(); // mirrors the on-screen keyboard into --keyboard-inset
 
   if (!isSupabaseConfigured) return <SetupNotice />;
   if (status === 'loading') return <Splash />;

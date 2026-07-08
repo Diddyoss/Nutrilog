@@ -1,3 +1,4 @@
+import { haptic } from '../lib/haptics';
 import { CHART_PERIODS, type ChartPeriod } from '../lib/trends';
 
 const LABELS: Record<ChartPeriod, string> = { '1W': '1W', '1M': '1M', '3M': '3M', ALL: 'All' };
@@ -21,7 +22,10 @@ export function PeriodSelector({
           role="tab"
           aria-selected={p === value}
           className={`period-option${p === value ? ' active' : ''}`}
-          onClick={() => onChange(p)}
+          onClick={() => {
+            if (p !== value) haptic('light');
+            onChange(p);
+          }}
         >
           {LABELS[p]}
         </button>
