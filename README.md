@@ -4,7 +4,7 @@ Personal nutrition and calorie tracker. Vite + React 18 + TypeScript, Supabase (
 
 ## Setup
 
-1. **Supabase**: create a project, run `supabase/schema.sql` in the SQL editor, and enable **Authentication → Sign In / Up → Allow anonymous sign-ins**.
+1. **Supabase**: create a project, run `supabase/schema.sql` in the SQL editor, and enable **Authentication → Sign In / Up → Allow anonymous sign-ins**. Existing projects: apply any new files in `supabase/migrations/` in order (latest: `005_add_custom_food.sql`, which enables **My Foods** — manually entered foods are saved and can be re-logged from the add-food sheet).
 2. **Env vars**: copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 3. **Install & run**:
 

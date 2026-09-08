@@ -13,6 +13,8 @@ import { ActivityModal } from './ActivityModal';
 import { useFoodLog } from '../hooks/useFoodLog';
 import { useSupplementLog } from '../hooks/useSupplementLog';
 import { useActivityLog } from '../hooks/useActivityLog';
+import { useCustomFoods } from '../hooks/useCustomFoods';
+import { customFoodFromSaveFields, shouldSaveAsCustomFood } from '../lib/customFoods';
 import { ALL_NUTRIENT_KEYS, sumNutrients } from '../lib/nutrientReference';
 import { dayProgress, todayStr } from '../lib/date';
 import type { FoodDraft, FoodEntry, NutrientKey, NutrientValues, Profile } from '../types';
@@ -55,6 +57,14 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
     addEntry: addActivity,
     deleteEntry: deleteActivity,
   } = useActivityLog(date, onChanged);
+  const {
+    foods: customFoods,
+    loading: customFoodsLoading,
+    available: customFoodsAvailable,
+    save: saveCustomFood,
+    touch: touchCustomFood,
+    remove: removeCustomFood,
+  } = useCustomFoods();
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [draft, setDraft] = useState<FoodDraft | null>(null);
@@ -201,6 +211,10 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           setSheetOpen(false);
           setDraft(d);
         }}
+        customFoods={customFoods}
+        customFoodsLoading={customFoodsLoading}
+        customFoodsAvailable={customFoodsAvailable}
+        onRemoveCustomFood={removeCustomFood}
       />
 
       {draft && (
@@ -212,7 +226,15 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
           onClose={() => setDraft(null)}
           onSave={async (fields) => {
             const ok = await addEntry(fields);
-            if (ok) setDraft(null);
+            if (!ok) return;
+            setDraft(null);
+            // Remember manual entries in My Foods. Re-logging a saved food only
+            // bumps its usage; a fresh manual entry is saved (or refreshed by name).
+            if (draft.custom_food_id) {
+              void touchCustomFood(draft.custom_food_id);
+            } else if (shouldSaveAsCustomFood(fields)) {
+              void saveCustomFood(customFoodFromSaveFields(fields));
+            }
           }}
         />
       )}

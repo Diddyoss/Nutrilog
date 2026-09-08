@@ -2,20 +2,38 @@ import { useEffect, useState } from 'react';
 import { ScanTab } from './ScanTab';
 import { PhotoTab } from './PhotoTab';
 import { SearchTab } from './SearchTab';
+import { MyFoodsTab } from './MyFoodsTab';
 import { blankManualDraft } from '../lib/api';
-import type { FoodDraft } from '../types';
+import type { CustomFood, FoodDraft } from '../types';
 
-type SheetTab = 'scan' | 'photo' | 'search';
+type SheetTab = 'scan' | 'photo' | 'search' | 'mine';
 
-const TAB_LABELS: Record<SheetTab, string> = { scan: 'Scan', photo: 'Photo', search: 'Search' };
+const TAB_LABELS: Record<SheetTab, string> = {
+  scan: 'Scan',
+  photo: 'Photo',
+  search: 'Search',
+  mine: 'My Foods',
+};
 
 interface AddFoodSheetProps {
   open: boolean;
   onClose: () => void;
   onResult: (draft: FoodDraft) => void;
+  customFoods: CustomFood[];
+  customFoodsLoading: boolean;
+  customFoodsAvailable: boolean;
+  onRemoveCustomFood: (id: string) => void;
 }
 
-export function AddFoodSheet({ open, onClose, onResult }: AddFoodSheetProps) {
+export function AddFoodSheet({
+  open,
+  onClose,
+  onResult,
+  customFoods,
+  customFoodsLoading,
+  customFoodsAvailable,
+  onRemoveCustomFood,
+}: AddFoodSheetProps) {
   const [tab, setTab] = useState<SheetTab>('scan');
 
   useEffect(() => {
@@ -44,6 +62,15 @@ export function AddFoodSheet({ open, onClose, onResult }: AddFoodSheetProps) {
           {tab === 'scan' && <ScanTab onResult={onResult} onSwitchToPhoto={() => setTab('photo')} />}
           {tab === 'photo' && <PhotoTab onResult={onResult} />}
           {tab === 'search' && <SearchTab onResult={onResult} />}
+          {tab === 'mine' && (
+            <MyFoodsTab
+              foods={customFoods}
+              loading={customFoodsLoading}
+              available={customFoodsAvailable}
+              onResult={onResult}
+              onRemove={onRemoveCustomFood}
+            />
+          )}
         </div>
         <div className="sheet-footer">
           <button

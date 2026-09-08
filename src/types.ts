@@ -114,7 +114,32 @@ export interface FoodDraft {
   perGram?: PerGram | null;
   /** micronutrient values at the current serving */
   micros?: Partial<NutrientValues>;
+  /** id of the saved custom food this draft was loaded from (My Foods) */
+  custom_food_id?: string;
 }
+
+/** A manually entered food saved to the user's personal library ("My Foods"). */
+export type CustomFood = {
+  id: string;
+  food_name: string;
+  serving_size: string | null;
+  calories: number;
+  protein_g: number | null;
+  carbs_g: number | null;
+  fat_g: number | null;
+  use_count: number;
+  last_used_at: string;
+  created_at: string;
+} & Partial<Record<NutrientKey, number | null>>;
+
+export type CustomFoodSaveFields = {
+  food_name: string;
+  serving_size: string | null;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+} & NutrientValues;
 
 export interface WeightEntry {
   id: string;

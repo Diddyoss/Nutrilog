@@ -1016,6 +1016,26 @@ input[type='time'].input {
   color: var(--text-secondary);
 }
 
+/* My Foods: result row + trailing remove button */
+.my-food-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.my-food-row .result-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-food-row .result-name,
+.my-food-row .result-meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ============ Modal ============ */
 
 .modal-overlay {
