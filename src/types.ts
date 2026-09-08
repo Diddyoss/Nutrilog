@@ -173,14 +173,6 @@ export interface ActivitySaveFields {
   calories_burned: number;
 }
 
-export interface CoachMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  isLoading?: boolean;
-}
-
 export interface SearchResult {
   name: string;
   brand: string | null;

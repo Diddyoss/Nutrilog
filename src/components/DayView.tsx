@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
@@ -24,6 +24,10 @@ interface DayViewProps {
   profile: Profile;
   canAdd: boolean;
   onChanged?: () => void;
+  /** Floating add button. Off where an external control (the nav +) opens the sheet. */
+  showFab?: boolean;
+  /** Increments to request the add-food sheet from outside (the nav +). */
+  openAddSignal?: number;
 }
 
 function entryToDraft(entry: FoodEntry): FoodDraft {
@@ -45,7 +49,14 @@ function entryToDraft(entry: FoodEntry): FoodDraft {
   };
 }
 
-export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
+export function DayView({
+  date,
+  profile,
+  canAdd,
+  onChanged,
+  showFab = true,
+  openAddSignal,
+}: DayViewProps) {
   const { byMeal, entries, totals, loading, addEntry, updateEntry, deleteEntry } = useFoodLog(
     date,
     onChanged
@@ -76,6 +87,14 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
 
   const swipeRef = useRef<HTMLDivElement>(null);
   const nonce = useRef(0);
+  const lastAddSignal = useRef(openAddSignal);
+
+  // The nav + lives outside this component; a changed signal opens the sheet.
+  useEffect(() => {
+    if (openAddSignal === undefined || openAddSignal === lastAddSignal.current) return;
+    lastAddSignal.current = openAddSignal;
+    if (canAdd) setSheetOpen(true);
+  }, [openAddSignal, canAdd]);
 
   const isToday = date === todayStr();
   const target = profile.calorie_override ?? profile.calorie_target;
@@ -198,7 +217,7 @@ export function DayView({ date, profile, canAdd, onChanged }: DayViewProps) {
         </div>
       )}
 
-      {canAdd && (
+      {canAdd && showFab && (
         <button className="fab" onClick={() => setSheetOpen(true)} aria-label="Add food" type="button">
           <Plus size={26} />
         </button>

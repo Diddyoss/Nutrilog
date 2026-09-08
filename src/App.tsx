@@ -3,7 +3,6 @@ import { BottomNav } from './components/BottomNav';
 import type { Tab } from './components/BottomNav';
 import { Today } from './pages/Today';
 import { History } from './pages/History';
-import { CoachPage } from './pages/CoachPage';
 import { ProfilePage } from './pages/Profile';
 import { SettingsPage } from './pages/Settings';
 import { Onboarding } from './pages/Onboarding';
@@ -51,6 +50,13 @@ function ErrorScreen({ onRetry }: { onRetry: () => void }) {
 export default function App() {
   const { profile, status, reload, saveProfile, updateProfile } = useProfile();
   const [tab, setTab] = useState<Tab>('today');
+  const [addFoodSignal, setAddFoodSignal] = useState(0);
+
+  // The nav + always logs against today, so switch there before opening the sheet.
+  const requestAddFood = () => {
+    setTab('today');
+    setAddFoodSignal((n) => n + 1);
+  };
 
   if (!isSupabaseConfigured) return <SetupNotice />;
   if (status === 'loading') return <Splash />;
@@ -60,15 +66,14 @@ export default function App() {
   return (
     <div className="app">
       <main>
-        {tab === 'today' && <Today profile={profile} />}
+        {tab === 'today' && <Today profile={profile} openAddSignal={addFoodSignal} />}
         {tab === 'history' && <History profile={profile} />}
-        {tab === 'coach' && <CoachPage profile={profile} />}
         {tab === 'profile' && (
           <ProfilePage profile={profile} onSaveProfile={saveProfile} onUpdateProfile={updateProfile} />
         )}
         {tab === 'settings' && <SettingsPage profile={profile} onUpdateProfile={updateProfile} />}
       </main>
-      <BottomNav tab={tab} onChange={setTab} />
+      <BottomNav tab={tab} onChange={setTab} onAddFood={requestAddFood} />
     </div>
   );
 }

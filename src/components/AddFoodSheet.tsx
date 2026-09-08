@@ -2,17 +2,16 @@ import { useEffect, useState } from 'react';
 import { ScanTab } from './ScanTab';
 import { PhotoTab } from './PhotoTab';
 import { SearchTab } from './SearchTab';
-import { MyFoodsTab } from './MyFoodsTab';
-import { blankManualDraft } from '../lib/api';
+import { ManualTab } from './ManualTab';
 import type { CustomFood, FoodDraft } from '../types';
 
-type SheetTab = 'scan' | 'photo' | 'search' | 'mine';
+type SheetTab = 'scan' | 'photo' | 'search' | 'manual';
 
 const TAB_LABELS: Record<SheetTab, string> = {
   scan: 'Scan',
   photo: 'Photo',
   search: 'Search',
-  mine: 'My Foods',
+  manual: 'Manual',
 };
 
 interface AddFoodSheetProps {
@@ -62,8 +61,8 @@ export function AddFoodSheet({
           {tab === 'scan' && <ScanTab onResult={onResult} onSwitchToPhoto={() => setTab('photo')} />}
           {tab === 'photo' && <PhotoTab onResult={onResult} />}
           {tab === 'search' && <SearchTab onResult={onResult} />}
-          {tab === 'mine' && (
-            <MyFoodsTab
+          {tab === 'manual' && (
+            <ManualTab
               foods={customFoods}
               loading={customFoodsLoading}
               available={customFoodsAvailable}
@@ -71,15 +70,6 @@ export function AddFoodSheet({
               onRemove={onRemoveCustomFood}
             />
           )}
-        </div>
-        <div className="sheet-footer">
-          <button
-            className="btn btn-secondary btn-block"
-            onClick={() => onResult(blankManualDraft())}
-            type="button"
-          >
-            Enter food manually
-          </button>
         </div>
       </div>
     </div>
