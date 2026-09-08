@@ -56,7 +56,7 @@ export async function analyzeFoodImage(
   const data = await getJson('/api/analyze-food', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image: base64, media_type: mediaType, context, type: 'image' }),
+    body: JSON.stringify({ image: base64, media_type: mediaType, context }),
   });
   return {
     food_name: String(data.food_name ?? 'Unknown food'),
