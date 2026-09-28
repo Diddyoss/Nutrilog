@@ -2,9 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { ProfileWizard } from '../components/ProfileWizard';
 import { WeightChart } from '../components/WeightChart';
 import { useToast } from '../components/Toast';
-import { ACTIVITY_LABELS, GOAL_LABELS } from '../lib/calculations';
+import {
+  ACTIVITY_LABELS,
+  GOAL_LABELS,
+  isValidWeightKg,
+  toProfileInput,
+  WEIGHT_KG_MAX,
+  WEIGHT_KG_MIN,
+} from '../lib/calculations';
 import { addDays, toDateStr, todayStr } from '../lib/date';
-import { formatHeight, formatWeight, lbsToKg, round1 } from '../lib/units';
+import { formatHeight, formatWeight, kgToLbs, lbsToKg, round1 } from '../lib/units';
 import { supabase } from '../lib/supabase';
 import type { Profile, ProfileInput, WeightEntry } from '../types';
 import { Modal } from '../components/Modal';
@@ -52,18 +59,36 @@ export function ProfilePage({ profile, onSaveProfile, onUpdateProfile }: Profile
     const v = parseFloat(weightInput);
     if (!Number.isFinite(v) || v <= 0) return;
     const kg = round1(profile.units === 'imperial' ? lbsToKg(v) : v);
+    // Logged weight now drives targets, so reject typos before they skew them.
+    if (!isValidWeightKg(kg)) {
+      toast(
+        profile.units === 'imperial'
+          ? `Enter a weight between ${Math.round(kgToLbs(WEIGHT_KG_MIN))} and ${Math.round(kgToLbs(WEIGHT_KG_MAX))} lbs`
+          : `Enter a weight between ${WEIGHT_KG_MIN} and ${WEIGHT_KG_MAX} kg`
+      );
+      return;
+    }
     setSavingWeight(true);
     const { error } = await supabase
       .from('weight_log')
       .insert({ log_date: todayStr(), weight_kg: kg });
-    setSavingWeight(false);
     if (error) {
+      setSavingWeight(false);
       toast('Could not log weight');
       return;
     }
     setWeightInput('');
-    toast('Weight logged');
     loadWeights();
+
+    // Today's weight becomes the profile weight, so targets follow it.
+    // saveProfile recalculates targets and keeps any calorie override.
+    if (kg !== round1(profile.weight_kg)) {
+      const ok = await onSaveProfile({ ...toProfileInput(profile), weight_kg: kg });
+      toast(ok ? 'Weight logged — targets updated' : 'Weight logged, but targets were not updated');
+    } else {
+      toast('Weight logged');
+    }
+    setSavingWeight(false);
   };
 
   const target = profile.calorie_override ?? profile.calorie_target;
@@ -170,14 +195,7 @@ export function ProfilePage({ profile, onSaveProfile, onUpdateProfile }: Profile
         <Modal onClose={() => setEditing(false)}>
           <h2 className="modal-title">Edit profile</h2>
           <ProfileWizard
-            initial={{
-              sex: profile.sex,
-              age: profile.age,
-              height_cm: profile.height_cm,
-              weight_kg: profile.weight_kg,
-              goal: profile.goal,
-              activity_level: profile.activity_level,
-            }}
+            initial={toProfileInput(profile)}
             defaultUnits={profile.units}
             submitLabel="Recalculate targets"
             onCancel={() => setEditing(false)}

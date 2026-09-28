@@ -1,4 +1,24 @@
-import type { ActivityLevel, Goal, ProfileInput, Sex, Targets } from '../types';
+import type { ActivityLevel, Goal, Profile, ProfileInput, Sex, Targets } from '../types';
+
+/** Plausible adult body weight; guards targets against typos like 7 or 750. */
+export const WEIGHT_KG_MIN = 30;
+export const WEIGHT_KG_MAX = 300;
+
+export function isValidWeightKg(kg: number): boolean {
+  return Number.isFinite(kg) && kg >= WEIGHT_KG_MIN && kg <= WEIGHT_KG_MAX;
+}
+
+/** The stats that targets are calculated from, as stored on the profile. */
+export function toProfileInput(p: Profile): ProfileInput {
+  return {
+    sex: p.sex,
+    age: p.age,
+    height_cm: p.height_cm,
+    weight_kg: p.weight_kg,
+    goal: p.goal,
+    activity_level: p.activity_level,
+  };
+}
 
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   sedentary: 1.2,

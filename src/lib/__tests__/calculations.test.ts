@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { calculateBMR, calculateTargets, ACTIVITY_MULTIPLIERS } from '../calculations';
-import type { ProfileInput } from '../../types';
+import {
+  calculateBMR,
+  calculateTargets,
+  ACTIVITY_MULTIPLIERS,
+  isValidWeightKg,
+  toProfileInput,
+  WEIGHT_KG_MAX,
+  WEIGHT_KG_MIN,
+} from '../calculations';
+import type { Profile, ProfileInput } from '../../types';
 
 describe('calculateBMR', () => {
   it('uses Mifflin-St Jeor formula for males (+5)', () => {
@@ -95,5 +103,63 @@ describe('calculateTargets', () => {
     const cuttingProteinFraction = (cutting.protein_target_g * 4) / cutting.calorie_target;
     const mainProteinFraction = (maintenance.protein_target_g * 4) / maintenance.calorie_target;
     expect(cuttingProteinFraction).toBeGreaterThan(mainProteinFraction);
+  });
+});
+
+describe('isValidWeightKg', () => {
+  it('accepts the bounds and values between them', () => {
+    expect(isValidWeightKg(WEIGHT_KG_MIN)).toBe(true);
+    expect(isValidWeightKg(72.4)).toBe(true);
+    expect(isValidWeightKg(WEIGHT_KG_MAX)).toBe(true);
+  });
+
+  it('rejects typos outside the range', () => {
+    expect(isValidWeightKg(7.2)).toBe(false); // missing digit
+    expect(isValidWeightKg(724)).toBe(false); // extra digit
+  });
+
+  it('rejects non-finite values', () => {
+    expect(isValidWeightKg(NaN)).toBe(false);
+    expect(isValidWeightKg(Infinity)).toBe(false);
+  });
+});
+
+describe('toProfileInput', () => {
+  const profile: Profile = {
+    id: 'p1',
+    user_id: 'u1',
+    name: 'Sam',
+    sex: 'female',
+    age: 34,
+    height_cm: 168,
+    weight_kg: 64.5,
+    goal: 'cutting',
+    activity_level: 'moderate',
+    calorie_target: 1800,
+    protein_target_g: 180,
+    carbs_target_g: 135,
+    fat_target_g: 60,
+    calorie_override: 1700,
+    units: 'metric',
+    wake_time: '07:00',
+    sleep_time: '23:00',
+  };
+
+  it('keeps exactly the stats targets are calculated from', () => {
+    expect(toProfileInput(profile)).toEqual({
+      sex: 'female',
+      age: 34,
+      height_cm: 168,
+      weight_kg: 64.5,
+      goal: 'cutting',
+      activity_level: 'moderate',
+    });
+  });
+
+  it('a new weight changes the calculated calorie target', () => {
+    const before = calculateTargets(toProfileInput(profile)).calorie_target;
+    const after = calculateTargets({ ...toProfileInput(profile), weight_kg: 60.5 }).calorie_target;
+    // Mifflin-St Jeor: 10 kcal/kg BMR x 1.55 (moderate) x 4 kg = 62 kcal
+    expect(before - after).toBe(62);
   });
 });

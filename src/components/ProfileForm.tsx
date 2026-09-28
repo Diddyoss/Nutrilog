@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { ACTIVITY_LABELS, GOAL_LABELS } from '../lib/calculations';
+import {
+  ACTIVITY_LABELS,
+  GOAL_LABELS,
+  isValidWeightKg,
+  WEIGHT_KG_MAX,
+  WEIGHT_KG_MIN,
+} from '../lib/calculations';
 import { cmToFtIn, ftInToCm, kgToLbs, lbsToKg, round1 } from '../lib/units';
 import type { ActivityLevel, Goal, ProfileInput, Sex, Units } from '../types';
 
@@ -78,8 +84,8 @@ export function ProfileForm({
     if (!Number.isFinite(ageN) || ageN < 10 || ageN > 100) return setError('Enter an age between 10 and 100');
     if (!Number.isFinite(heightCm) || heightCm < 100 || heightCm > 250)
       return setError('Enter a height between 100 and 250 cm');
-    if (!Number.isFinite(weightKg) || weightKg < 30 || weightKg > 300)
-      return setError('Enter a weight between 30 and 300 kg');
+    if (!isValidWeightKg(weightKg))
+      return setError(`Enter a weight between ${WEIGHT_KG_MIN} and ${WEIGHT_KG_MAX} kg`);
 
     setError(null);
     onSubmit({
