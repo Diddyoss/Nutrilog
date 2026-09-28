@@ -3,6 +3,7 @@ import { ScanTab } from './ScanTab';
 import { PhotoTab } from './PhotoTab';
 import { SearchTab } from './SearchTab';
 import { ManualTab } from './ManualTab';
+import { Portal } from './Portal';
 import type { CustomFood, FoodDraft } from '../types';
 
 type SheetTab = 'scan' | 'photo' | 'search' | 'manual';
@@ -42,36 +43,38 @@ export function AddFoodSheet({
   if (!open) return null;
 
   return (
-    <div className="sheet-overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add food">
-        <div className="sheet-handle" />
-        <div className="sheet-tabs">
-          {(Object.keys(TAB_LABELS) as SheetTab[]).map((t) => (
-            <button
-              key={t}
-              className={`sheet-tab${tab === t ? ' active' : ''}`}
-              onClick={() => setTab(t)}
-              type="button"
-            >
-              {TAB_LABELS[t]}
-            </button>
-          ))}
-        </div>
-        <div className="sheet-content">
-          {tab === 'scan' && <ScanTab onResult={onResult} onSwitchToPhoto={() => setTab('photo')} />}
-          {tab === 'photo' && <PhotoTab onResult={onResult} />}
-          {tab === 'search' && <SearchTab onResult={onResult} />}
-          {tab === 'manual' && (
-            <ManualTab
-              foods={customFoods}
-              loading={customFoodsLoading}
-              available={customFoodsAvailable}
-              onResult={onResult}
-              onRemove={onRemoveCustomFood}
-            />
-          )}
+    <Portal>
+      <div className="sheet-overlay" onClick={onClose}>
+        <div className="sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Add food">
+          <div className="sheet-handle" />
+          <div className="sheet-tabs">
+            {(Object.keys(TAB_LABELS) as SheetTab[]).map((t) => (
+              <button
+                key={t}
+                className={`sheet-tab${tab === t ? ' active' : ''}`}
+                onClick={() => setTab(t)}
+                type="button"
+              >
+                {TAB_LABELS[t]}
+              </button>
+            ))}
+          </div>
+          <div className="sheet-content">
+            {tab === 'scan' && <ScanTab onResult={onResult} onSwitchToPhoto={() => setTab('photo')} />}
+            {tab === 'photo' && <PhotoTab onResult={onResult} />}
+            {tab === 'search' && <SearchTab onResult={onResult} />}
+            {tab === 'manual' && (
+              <ManualTab
+                foods={customFoods}
+                loading={customFoodsLoading}
+                available={customFoodsAvailable}
+                onResult={onResult}
+                onRemove={onRemoveCustomFood}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 }

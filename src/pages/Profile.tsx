@@ -7,6 +7,7 @@ import { addDays, toDateStr, todayStr } from '../lib/date';
 import { formatHeight, formatWeight, lbsToKg, round1 } from '../lib/units';
 import { supabase } from '../lib/supabase';
 import type { Profile, ProfileInput, WeightEntry } from '../types';
+import { Modal } from '../components/Modal';
 
 interface ProfilePageProps {
   profile: Profile;
@@ -166,28 +167,26 @@ export function ProfilePage({ profile, onSaveProfile, onUpdateProfile }: Profile
       </section>
 
       {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">Edit profile</h2>
-            <ProfileWizard
-              initial={{
-                sex: profile.sex,
-                age: profile.age,
-                height_cm: profile.height_cm,
-                weight_kg: profile.weight_kg,
-                goal: profile.goal,
-                activity_level: profile.activity_level,
-              }}
-              defaultUnits={profile.units}
-              submitLabel="Recalculate targets"
-              onCancel={() => setEditing(false)}
-              onComplete={async (input) => {
-                const ok = await onSaveProfile(input);
-                if (ok) setEditing(false);
-              }}
-            />
-          </div>
-        </div>
+        <Modal onClose={() => setEditing(false)}>
+          <h2 className="modal-title">Edit profile</h2>
+          <ProfileWizard
+            initial={{
+              sex: profile.sex,
+              age: profile.age,
+              height_cm: profile.height_cm,
+              weight_kg: profile.weight_kg,
+              goal: profile.goal,
+              activity_level: profile.activity_level,
+            }}
+            defaultUnits={profile.units}
+            submitLabel="Recalculate targets"
+            onCancel={() => setEditing(false)}
+            onComplete={async (input) => {
+              const ok = await onSaveProfile(input);
+              if (ok) setEditing(false);
+            }}
+          />
+        </Modal>
       )}
     </div>
   );

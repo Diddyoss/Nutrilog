@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NUTRIENT_META, SUPPLEMENT_KEYS } from '../lib/nutrientReference';
 import type { NutrientKey, SupplementSaveFields } from '../types';
+import { Modal } from './Modal';
 
 interface SupplementModalProps {
   onSave: (fields: SupplementSaveFields) => Promise<void> | void;
@@ -36,62 +37,60 @@ export function SupplementModal({ onSave, onClose }: SupplementModalProps) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2 className="modal-title">Add supplement</h2>
-        </div>
-
-        <div className="field">
-          <label className="field-label">Name</label>
-          <input
-            className="input"
-            placeholder="e.g. Multivitamin, Vitamin C"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label">Dose (optional)</label>
-          <input
-            className="input"
-            placeholder="e.g. 1 tablet, 500mg"
-            value={dose}
-            onChange={(e) => setDose(e.target.value)}
-          />
-        </div>
-
-        <div className="micro-groups">
-          <div className="micro-subhead">Per serving — fill what's on the label</div>
-          {SUPPLEMENT_KEYS.map((key) => (
-            <div key={key} className="micro-field">
-              <label className="micro-field-label">
-                {NUTRIENT_META[key].label} ({NUTRIENT_META[key].unit})
-              </label>
-              <input
-                className="input"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                value={values[key] ?? ''}
-                onChange={(e) => setValue(key, e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
-
-        {error && <p className="caption error-text">{error}</p>}
-
-        <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose} type="button">
-            Cancel
-          </button>
-          <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">
-            {saving ? <span className="spinner" /> : 'Add Supplement'}
-          </button>
-        </div>
+    <Modal onClose={onClose}>
+      <div className="modal-head">
+        <h2 className="modal-title">Add supplement</h2>
       </div>
-    </div>
+
+      <div className="field">
+        <label className="field-label">Name</label>
+        <input
+          className="input"
+          placeholder="e.g. Multivitamin, Vitamin C"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label className="field-label">Dose (optional)</label>
+        <input
+          className="input"
+          placeholder="e.g. 1 tablet, 500mg"
+          value={dose}
+          onChange={(e) => setDose(e.target.value)}
+        />
+      </div>
+
+      <div className="micro-groups">
+        <div className="micro-subhead">Per serving — fill what's on the label</div>
+        {SUPPLEMENT_KEYS.map((key) => (
+          <div key={key} className="micro-field">
+            <label className="micro-field-label">
+              {NUTRIENT_META[key].label} ({NUTRIENT_META[key].unit})
+            </label>
+            <input
+              className="input"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              value={values[key] ?? ''}
+              onChange={(e) => setValue(key, e.target.value)}
+            />
+          </div>
+        ))}
+      </div>
+
+      {error && <p className="caption error-text">{error}</p>}
+
+      <div className="modal-actions">
+        <button className="btn btn-secondary" onClick={onClose} type="button">
+          Cancel
+        </button>
+        <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">
+          {saving ? <span className="spinner" /> : 'Add Supplement'}
+        </button>
+      </div>
+    </Modal>
   );
 }

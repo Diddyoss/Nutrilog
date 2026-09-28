@@ -4,6 +4,7 @@ import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
 import { MealSection, MEALS, MEAL_LABELS } from './MealSection';
 import { AddFoodSheet } from './AddFoodSheet';
+import { Portal } from './Portal';
 import { FoodModal } from './FoodModal';
 import { NutrientPieChart } from './NutrientPieChart';
 import { NutrientBreakdownTable } from './NutrientBreakdownTable';
@@ -218,9 +219,11 @@ export function DayView({
       )}
 
       {canAdd && showFab && (
-        <button className="fab" onClick={() => setSheetOpen(true)} aria-label="Add food" type="button">
-          <Plus size={26} />
-        </button>
+        <Portal>
+          <button className="fab" onClick={() => setSheetOpen(true)} aria-label="Add food" type="button">
+            <Plus size={26} />
+          </button>
+        </Portal>
       )}
 
       <AddFoodSheet

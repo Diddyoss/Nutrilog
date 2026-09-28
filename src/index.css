@@ -124,7 +124,9 @@ code {
   flex-direction: column;
   gap: 24px;
   padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
-  animation: pageSpring 480ms var(--spring-soft) both;
+  /* backwards, not both: a lingering transform would make .page the containing
+     block for position:fixed children (see components/Portal.tsx). */
+  animation: pageSpring 480ms var(--spring-soft) backwards;
 }
 
 /* Damped-spring entrance: overshoots slightly, settles back — runs on every tab switch. */

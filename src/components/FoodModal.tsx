@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { defaultMealForNow } from '../lib/date';
 import { MEAL_LABELS, MEALS } from './MealSection';
+import { Modal } from './Modal';
 import {
   ALL_NUTRIENT_KEYS,
   GROUP_LABELS,
@@ -224,179 +225,177 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2 className="modal-title">{title}</h2>
-          <span className="badge">{SOURCE_LABELS[draft.source]}</span>
+    <Modal onClose={onClose}>
+      <div className="modal-head">
+        <h2 className="modal-title">{title}</h2>
+        <span className="badge">{SOURCE_LABELS[draft.source]}</span>
+      </div>
+
+      {draft.source === 'ai_photo' && (
+        <p className="caption">
+          AI estimate — adjust if needed
+          {draft.confidence ? ` · confidence: ${draft.confidence}` : ''}
+        </p>
+      )}
+      {draft.note && <p className="caption muted">{draft.note}</p>}
+      {draft.has_macros === false && <p className="caption">Macros unavailable — enter manually</p>}
+
+      <div className="field">
+        <label className="field-label">Food name</label>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+
+      <div className="field">
+        <label className="field-label">Serving size</label>
+        <input
+          className="input"
+          placeholder="e.g. 1 cup, 150g, 1 scoop"
+          value={serving}
+          onChange={(e) => handleServingChange(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label className="field-label">Meal</label>
+        <div className="segmented wrap">
+          {MEALS.map((m) => (
+            <button key={m} className={meal === m ? 'active' : ''} onClick={() => setMeal(m)} type="button">
+              {MEAL_LABELS[m]}
+            </button>
+          ))}
         </div>
+      </div>
 
-        {draft.source === 'ai_photo' && (
-          <p className="caption">
-            AI estimate — adjust if needed
-            {draft.confidence ? ` · confidence: ${draft.confidence}` : ''}
-          </p>
-        )}
-        {draft.note && <p className="caption muted">{draft.note}</p>}
-        {draft.has_macros === false && <p className="caption">Macros unavailable — enter manually</p>}
+      <div className="field">
+        <label className="field-label">Calories (kcal)</label>
+        <input
+          className="input"
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={calories}
+          onChange={(e) => handleCaloriesChange(e.target.value)}
+        />
+      </div>
 
+      <div className="grid-3">
         <div className="field">
-          <label className="field-label">Food name</label>
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-
-        <div className="field">
-          <label className="field-label">Serving size</label>
-          <input
-            className="input"
-            placeholder="e.g. 1 cup, 150g, 1 scoop"
-            value={serving}
-            onChange={(e) => handleServingChange(e.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label className="field-label">Meal</label>
-          <div className="segmented wrap">
-            {MEALS.map((m) => (
-              <button key={m} className={meal === m ? 'active' : ''} onClick={() => setMeal(m)} type="button">
-                {MEAL_LABELS[m]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="field">
-          <label className="field-label">Calories (kcal)</label>
+          <label className="field-label">Protein g</label>
           <input
             className="input"
             type="number"
-            inputMode="numeric"
+            inputMode="decimal"
             min="0"
-            value={calories}
-            onChange={(e) => handleCaloriesChange(e.target.value)}
+            value={protein}
+            onChange={(e) => setProtein(e.target.value)}
           />
         </div>
-
-        <div className="grid-3">
-          <div className="field">
-            <label className="field-label">Protein g</label>
-            <input
-              className="input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              value={protein}
-              onChange={(e) => setProtein(e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label className="field-label">Carbs g</label>
-            <input
-              className="input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              value={carbs}
-              onChange={(e) => setCarbs(e.target.value)}
-            />
-          </div>
-          <div className="field">
-            <label className="field-label">Fat g</label>
-            <input
-              className="input"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              value={fat}
-              onChange={(e) => setFat(e.target.value)}
-            />
-          </div>
+        <div className="field">
+          <label className="field-label">Carbs g</label>
+          <input
+            className="input"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={carbs}
+            onChange={(e) => setCarbs(e.target.value)}
+          />
         </div>
-
-        <div className="micro-section">
-          <button
-            type="button"
-            className="micro-toggle"
-            onClick={() => setMicrosOpen((o) => !o)}
-            aria-expanded={microsOpen}
-          >
-            <span className="field-label">Micronutrients (tap to edit)</span>
-            <ChevronDown size={16} className={`chevron${microsOpen ? ' open' : ''}`} />
-          </button>
-          {microsOpen && (
-            <div className="micro-groups">
-              {MICRO_VIEWS.map((group) => (
-                <div key={group} className="micro-group">
-                  <div className="micro-subhead">{GROUP_LABELS[group]}</div>
-                  {NUTRIENT_GROUPS[group].map((key) => (
-                    <div key={key} className="micro-field">
-                      <label className="micro-field-label">
-                        {NUTRIENT_META[key].label} ({NUTRIENT_META[key].unit})
-                      </label>
-                      <input
-                        className="input"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        value={micros[key]}
-                        onChange={(e) => setMicro(key, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {impact && (
-          <div className="field">
-            <label className="field-label">Impact on daily targets</label>
-            <div className="impact-row">
-              <MiniRing
-                label="kcal"
-                colorClass="calories"
-                current={impact.baseline.calories + (parseFloat(calories) || 0)}
-                target={impact.targets.calories}
-              />
-              <MiniRing
-                label="Protein"
-                colorClass="protein"
-                current={impact.baseline.protein + (parseFloat(protein) || 0)}
-                target={impact.targets.protein}
-              />
-              <MiniRing
-                label="Carbs"
-                colorClass="carbs"
-                current={impact.baseline.carbs + (parseFloat(carbs) || 0)}
-                target={impact.targets.carbs}
-              />
-              <MiniRing
-                label="Fat"
-                colorClass="fat"
-                current={impact.baseline.fat + (parseFloat(fat) || 0)}
-                target={impact.targets.fat}
-              />
-            </div>
-          </div>
-        )}
-
-        <p className="caption muted">
-          Changing the serving or calories rescales the other values proportionally.
-        </p>
-
-        {error && <p className="caption error-text">{error}</p>}
-
-        <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose} type="button">
-            Cancel
-          </button>
-          <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">
-            {saving ? <span className="spinner" /> : saveLabel}
-          </button>
+        <div className="field">
+          <label className="field-label">Fat g</label>
+          <input
+            className="input"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={fat}
+            onChange={(e) => setFat(e.target.value)}
+          />
         </div>
       </div>
-    </div>
+
+      <div className="micro-section">
+        <button
+          type="button"
+          className="micro-toggle"
+          onClick={() => setMicrosOpen((o) => !o)}
+          aria-expanded={microsOpen}
+        >
+          <span className="field-label">Micronutrients (tap to edit)</span>
+          <ChevronDown size={16} className={`chevron${microsOpen ? ' open' : ''}`} />
+        </button>
+        {microsOpen && (
+          <div className="micro-groups">
+            {MICRO_VIEWS.map((group) => (
+              <div key={group} className="micro-group">
+                <div className="micro-subhead">{GROUP_LABELS[group]}</div>
+                {NUTRIENT_GROUPS[group].map((key) => (
+                  <div key={key} className="micro-field">
+                    <label className="micro-field-label">
+                      {NUTRIENT_META[key].label} ({NUTRIENT_META[key].unit})
+                    </label>
+                    <input
+                      className="input"
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      value={micros[key]}
+                      onChange={(e) => setMicro(key, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {impact && (
+        <div className="field">
+          <label className="field-label">Impact on daily targets</label>
+          <div className="impact-row">
+            <MiniRing
+              label="kcal"
+              colorClass="calories"
+              current={impact.baseline.calories + (parseFloat(calories) || 0)}
+              target={impact.targets.calories}
+            />
+            <MiniRing
+              label="Protein"
+              colorClass="protein"
+              current={impact.baseline.protein + (parseFloat(protein) || 0)}
+              target={impact.targets.protein}
+            />
+            <MiniRing
+              label="Carbs"
+              colorClass="carbs"
+              current={impact.baseline.carbs + (parseFloat(carbs) || 0)}
+              target={impact.targets.carbs}
+            />
+            <MiniRing
+              label="Fat"
+              colorClass="fat"
+              current={impact.baseline.fat + (parseFloat(fat) || 0)}
+              target={impact.targets.fat}
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="caption muted">
+        Changing the serving or calories rescales the other values proportionally.
+      </p>
+
+      {error && <p className="caption error-text">{error}</p>}
+
+      <div className="modal-actions">
+        <button className="btn btn-secondary" onClick={onClose} type="button">
+          Cancel
+        </button>
+        <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">
+          {saving ? <span className="spinner" /> : saveLabel}
+        </button>
+      </div>
+    </Modal>
   );
 }
