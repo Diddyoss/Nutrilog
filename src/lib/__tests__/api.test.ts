@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { blankManualDraft, draftFromSearchResult } from '../api';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+
+const session = vi.hoisted(() => ({ current: { access_token: 'tok-123' } as { access_token: string } | null }));
+vi.mock('../supabase', () => ({ ensureSession: async () => session.current, supabase: {} }));
+
+import { analyzeFoodImage, ApiError, blankManualDraft, draftFromSearchResult } from '../api';
 import type { SearchResult } from '../../types';
 
 describe('blankManualDraft', () => {
@@ -182,5 +186,47 @@ describe('draftFromSearchResult', () => {
       const r = makeSearchResult({ kcal_per_100g: null, protein_per_100g: null, carbs_per_100g: null, fat_per_100g: null });
       expect(draftFromSearchResult(r).perGram).toBeNull();
     });
+  });
+});
+
+describe('analyzeFoodImage', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    session.current = { access_token: 'tok-123' };
+  });
+
+  function stubFetch(status: number, body: unknown) {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), { status }));
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+
+  it('sends the session token as a Bearer header', async () => {
+    const fetchMock = stubFetch(200, { food_name: 'Toast', calories: 120 });
+    await analyzeFoodImage('aGVsbG8=', 'image/jpeg');
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer tok-123');
+  });
+
+  it('omits the header when there is no session', async () => {
+    session.current = null;
+    const fetchMock = stubFetch(200, { food_name: 'Toast', calories: 120 });
+    await analyzeFoodImage('aGVsbG8=', 'image/jpeg');
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.headers as Record<string, string>).not.toHaveProperty('Authorization');
+  });
+
+  it('throws an ApiError carrying the status and server message on a 429', async () => {
+    stubFetch(429, { error: 'Daily photo limit reached (30 per 24h)' });
+    const err = await analyzeFoodImage('aGVsbG8=', 'image/jpeg').catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(429);
+    expect(err.message).toContain('Daily photo limit');
+  });
+
+  it('maps a successful reply into an ai_photo draft', async () => {
+    stubFetch(200, { food_name: 'Toast', serving_size: '2 slices', calories: '120', protein_g: 4, confidence: 'high' });
+    const d = await analyzeFoodImage('aGVsbG8=', 'image/jpeg');
+    expect(d).toMatchObject({ food_name: 'Toast', serving_size: '2 slices', calories: 120, protein_g: 4, source: 'ai_photo', confidence: 'high' });
   });
 });

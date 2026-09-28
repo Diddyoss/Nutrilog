@@ -201,3 +201,24 @@ create policy "Users manage own custom foods" on public.custom_food
   for all to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- AI photo analysis usage — enforces a per-user daily limit (see migration 006)
+create table if not exists public.ai_usage (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  kind text not null default 'photo',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists ai_usage_user_created_idx on public.ai_usage (user_id, created_at);
+
+alter table public.ai_usage enable row level security;
+
+-- Read and insert only: without update/delete a user can't erase usage to dodge the limit.
+create policy "Users read own AI usage" on public.ai_usage
+  for select to authenticated
+  using (auth.uid() = user_id);
+
+create policy "Users record own AI usage" on public.ai_usage
+  for insert to authenticated
+  with check (auth.uid() = user_id);

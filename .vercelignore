@@ -1,0 +1,2 @@
+# Tests are not deployed; keeps them from ever becoming /api routes.
+api/__tests__

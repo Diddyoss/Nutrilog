@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Camera, Image as ImageIcon } from 'lucide-react';
-import { analyzeFoodImage } from '../lib/api';
+import { analyzeFoodImage, ApiError } from '../lib/api';
 import { fileToResizedBase64 } from '../lib/image';
 import type { FoodDraft } from '../types';
 
@@ -23,8 +23,10 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
       const { base64, mediaType } = await fileToResizedBase64(file);
       const draft = await analyzeFoodImage(base64, mediaType, context.trim() || undefined);
       onResult(draft);
-    } catch {
-      setError('Analysis failed — try another photo or use Search.');
+    } catch (e) {
+      // Limit/session errors carry an actionable message; anything else stays generic.
+      const actionable = e instanceof ApiError && (e.status === 401 || e.status === 429);
+      setError(actionable ? e.message : 'Analysis failed — try another photo or use Search.');
     } finally {
       setLoading(false);
     }

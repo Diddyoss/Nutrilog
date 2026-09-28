@@ -1,10 +1,22 @@
 import type { FoodDraft, NutrientKey, NutrientValues, SearchResult } from '../types';
 import { ALL_NUTRIENT_KEYS } from './nutrientReference';
+import { ensureSession } from './supabase';
+
+/** A non-2xx API response; `message` is the server's user-facing error text. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
 async function getJson(url: string, init?: RequestInit) {
   const res = await fetch(url, init);
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  if (!res.ok) throw new ApiError(data?.error || `Request failed (${res.status})`, res.status);
   return data;
 }
 
@@ -53,9 +65,14 @@ export async function analyzeFoodImage(
   mediaType: string,
   context?: string
 ): Promise<FoodDraft> {
+  // The endpoint spends paid AI credits, so it requires the caller's session.
+  const session = await ensureSession();
   const data = await getJson('/api/analyze-food', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
     body: JSON.stringify({ image: base64, media_type: mediaType, context }),
   });
   return {
