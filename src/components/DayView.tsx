@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
-import { MealSection, MEALS, MEAL_LABELS } from './MealSection';
+import { MealSection } from './MealSection';
+import { MEALS, MEAL_LABELS } from '../lib/meals';
 import { AddFoodSheet } from './AddFoodSheet';
 import { Portal } from './Portal';
 import { FoodModal } from './FoodModal';
@@ -16,9 +17,9 @@ import { useSupplementLog } from '../hooks/useSupplementLog';
 import { useActivityLog } from '../hooks/useActivityLog';
 import { useCustomFoods } from '../hooks/useCustomFoods';
 import { customFoodFromSaveFields, shouldSaveAsCustomFood } from '../lib/customFoods';
-import { ALL_NUTRIENT_KEYS, sumNutrients } from '../lib/nutrientReference';
+import { microsFromRow, sumNutrients } from '../lib/nutrientReference';
 import { dayProgress, todayStr } from '../lib/date';
-import type { FoodDraft, FoodEntry, NutrientKey, NutrientValues, Profile } from '../types';
+import type { FoodDraft, FoodEntry, NutrientKey, Profile } from '../types';
 
 interface DayViewProps {
   date: string;
@@ -32,11 +33,6 @@ interface DayViewProps {
 }
 
 function entryToDraft(entry: FoodEntry): FoodDraft {
-  const micros: Partial<NutrientValues> = {};
-  for (const k of ALL_NUTRIENT_KEYS) {
-    const v = entry[k];
-    if (v != null) micros[k] = Number(v);
-  }
   return {
     food_name: entry.food_name,
     serving_size: entry.serving_size ?? '',
@@ -46,7 +42,7 @@ function entryToDraft(entry: FoodEntry): FoodDraft {
     fat_g: entry.fat_g,
     source: entry.source,
     perGram: null,
-    micros,
+    micros: microsFromRow(entry),
   };
 }
 

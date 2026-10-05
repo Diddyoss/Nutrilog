@@ -1,13 +1,8 @@
-import type { CustomFood, CustomFoodSaveFields, FoodDraft, FoodSaveFields, NutrientValues } from '../types';
-import { ALL_NUTRIENT_KEYS } from './nutrientReference';
+import type { CustomFood, CustomFoodSaveFields, FoodDraft, FoodSaveFields } from '../types';
+import { microsFromRow } from './nutrientReference';
 
 /** Turn a saved custom food back into an editable draft for the Confirm Food modal. */
 export function customFoodToDraft(cf: CustomFood): FoodDraft {
-  const micros: Partial<NutrientValues> = {};
-  for (const k of ALL_NUTRIENT_KEYS) {
-    const v = cf[k];
-    if (v != null && Number(v) !== 0) micros[k] = Number(v);
-  }
   return {
     food_name: cf.food_name,
     serving_size: cf.serving_size ?? '',
@@ -18,7 +13,7 @@ export function customFoodToDraft(cf: CustomFood): FoodDraft {
     source: 'manual',
     has_macros: true,
     perGram: null,
-    micros,
+    micros: microsFromRow(cf),
     custom_food_id: cf.id,
   };
 }

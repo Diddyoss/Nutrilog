@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { defaultMealForNow } from '../lib/date';
-import { MEAL_LABELS, MEALS } from './MealSection';
+import { MEAL_LABELS, MEALS } from '../lib/meals';
+import { gramsIn, servingQuantity } from '../lib/serving';
 import { Modal } from './Modal';
 import {
   ALL_NUTRIENT_KEYS,
@@ -19,14 +20,6 @@ import type {
 } from '../types';
 
 const MICRO_VIEWS = ['vitamins', 'minerals', 'fats', 'fatty_acids'] as const;
-
-/** Extract the quantity from a serving string: prefers grams/ml, falls back to the first number. */
-function parseQty(s: string): number | null {
-  const metric = s.match(/(\d+(?:[.,]\d+)?)\s*(?:g|grams?|ml)\b/i);
-  if (metric) return parseFloat(metric[1].replace(',', '.'));
-  const any = s.match(/(\d+(?:[.,]\d+)?)/);
-  return any ? parseFloat(any[1].replace(',', '.')) : null;
-}
 
 function round1str(n: number): string {
   return String(Math.round(n * 10) / 10);
@@ -132,7 +125,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   // Original values captured on open — all proportional rescaling is anchored
   // here so repeated edits never compound rounding drift.
   const baseline = useRef({
-    qty: parseQty(draft.serving_size),
+    qty: servingQuantity(draft.serving_size),
     calories: draft.calories,
     protein: draft.protein_g,
     carbs: draft.carbs_g,
@@ -154,21 +147,18 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
     setServing(value);
 
     const b = baseline.current;
-    const newQty = parseQty(value);
+    const newQty = servingQuantity(value);
     const ratio = b.qty && b.qty > 0 && newQty && newQty > 0 ? newQty / b.qty : null;
 
     // Exact per-gram data (from a database/scan result) wins for macros when grams are typed.
-    const gramMatch = value.match(/(\d+(?:[.,]\d+)?)\s*(?:g|grams?)\b/i);
-    if (draft.perGram && gramMatch) {
-      const grams = parseFloat(gramMatch[1].replace(',', '.'));
-      if (Number.isFinite(grams) && grams > 0) {
-        setCalories(String(Math.round(draft.perGram.calories * grams)));
-        setProtein(round1str(draft.perGram.protein_g * grams));
-        setCarbs(round1str(draft.perGram.carbs_g * grams));
-        setFat(round1str(draft.perGram.fat_g * grams));
-        if (ratio !== null) scaleMicrosFromBaseline(ratio);
-        return;
-      }
+    const grams = gramsIn(value);
+    if (draft.perGram && grams !== null && grams > 0) {
+      setCalories(String(Math.round(draft.perGram.calories * grams)));
+      setProtein(round1str(draft.perGram.protein_g * grams));
+      setCarbs(round1str(draft.perGram.carbs_g * grams));
+      setFat(round1str(draft.perGram.fat_g * grams));
+      if (ratio !== null) scaleMicrosFromBaseline(ratio);
+      return;
     }
 
     // Otherwise scale everything by the quantity ratio vs the original serving

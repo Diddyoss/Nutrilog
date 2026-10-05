@@ -85,6 +85,16 @@ function val(row: NutrientSource, key: NutrientKey): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** The nutrients a row actually has (non-zero), e.g. to prefill an edit form. */
+export function microsFromRow(row: NutrientSource): Partial<NutrientValues> {
+  const out: Partial<NutrientValues> = {};
+  for (const key of ALL_NUTRIENT_KEYS) {
+    const n = val(row, key);
+    if (n !== 0) out[key] = n;
+  }
+  return out;
+}
+
 /** Sum every tracked nutrient across food entries + supplement entries. */
 export function sumNutrients(foods: FoodEntry[], supplements: SupplementEntry[]): NutrientValues {
   const totals = {} as NutrientValues;

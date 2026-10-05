@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { isMissingColumnError, isMissingTableError, stripNutrientFields } from '../db';
+import { describe, it, expect, vi } from 'vitest';
+import { isMissingColumnError, isMissingTableError, stripNutrientFields, writeWithNutrientFallback } from '../db';
 import { ALL_NUTRIENT_KEYS } from '../nutrientReference';
 
 describe('isMissingColumnError', () => {
@@ -96,5 +96,42 @@ describe('stripNutrientFields', () => {
 
   it('returns an empty object when given an empty object', () => {
     expect(stripNutrientFields({})).toEqual({});
+  });
+});
+
+describe('writeWithNutrientFallback', () => {
+  const missingColumn = { code: 'PGRST204', message: "Could not find the 'iron_mg' column" };
+
+  it('writes once when the first attempt succeeds', async () => {
+    const write = vi.fn(async () => ({ error: null }));
+    const r = await writeWithNutrientFallback(write, { food_name: 'Egg', iron_mg: 1 });
+    expect(r).toEqual({ error: null, stripped: false });
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries without nutrient fields when a column is missing', async () => {
+    const write = vi
+      .fn<(row: Record<string, unknown>) => Promise<{ error: typeof missingColumn | null }>>()
+      .mockResolvedValueOnce({ error: missingColumn })
+      .mockResolvedValueOnce({ error: null });
+    const r = await writeWithNutrientFallback(write, { food_name: 'Egg', iron_mg: 1 });
+    expect(r).toEqual({ error: null, stripped: true });
+    expect(write.mock.calls[1][0]).toEqual({ food_name: 'Egg' });
+  });
+
+  it('reports the retry error and stripped=false if the retry also fails', async () => {
+    const other = { code: '42501', message: 'permission denied' };
+    const write = vi
+      .fn<(row: Record<string, unknown>) => Promise<{ error: { code: string; message: string } | null }>>()
+      .mockResolvedValueOnce({ error: missingColumn })
+      .mockResolvedValueOnce({ error: other });
+    expect(await writeWithNutrientFallback(write, { food_name: 'Egg' })).toEqual({ error: other, stripped: false });
+  });
+
+  it('does not retry for unrelated errors', async () => {
+    const other = { code: '42501', message: 'permission denied' };
+    const write = vi.fn(async () => ({ error: other }));
+    expect(await writeWithNutrientFallback(write, { food_name: 'Egg' })).toEqual({ error: other, stripped: false });
+    expect(write).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { ConfirmDeleteButton } from './ConfirmDeleteButton';
 import { blankManualDraft } from '../lib/api';
 import { customFoodSummary, customFoodToDraft, filterCustomFoods } from '../lib/customFoods';
 import type { CustomFood, FoodDraft } from '../types';
@@ -21,28 +22,13 @@ function FoodRow({
   onPick: () => void;
   onRemove: () => void;
 }) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [armed]);
-
   return (
     <div className="my-food-row">
       <button className="result-item" onClick={onPick} type="button">
         <span className="result-name">{food.food_name}</span>
         <span className="result-meta">{customFoodSummary(food)}</span>
       </button>
-      <button
-        className={`icon-btn${armed ? ' armed' : ''}`}
-        aria-label={armed ? 'Confirm remove' : 'Remove from saved foods'}
-        onClick={() => (armed ? onRemove() : setArmed(true))}
-        type="button"
-      >
-        {armed ? <Check size={16} /> : <Trash2 size={16} />}
-      </button>
+      <ConfirmDeleteButton label="Remove from saved foods" confirmLabel="Confirm remove" onConfirm={onRemove} />
     </div>
   );
 }

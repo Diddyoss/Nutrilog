@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ProfileWizard } from '../components/ProfileWizard';
 import { WeightChart } from '../components/WeightChart';
 import { useToast } from '../components/Toast';
@@ -10,11 +10,12 @@ import {
   WEIGHT_KG_MAX,
   WEIGHT_KG_MIN,
 } from '../lib/calculations';
-import { addDays, toDateStr, todayStr } from '../lib/date';
+import { todayStr } from '../lib/date';
 import { formatHeight, formatWeight, kgToLbs, lbsToKg, round1 } from '../lib/units';
 import { supabase } from '../lib/supabase';
-import type { Profile, ProfileInput, WeightEntry } from '../types';
 import { Modal } from '../components/Modal';
+import { useWeightLog } from '../hooks/useWeightLog';
+import type { Profile, ProfileInput } from '../types';
 
 interface ProfilePageProps {
   profile: Profile;
@@ -25,29 +26,10 @@ interface ProfilePageProps {
 export function ProfilePage({ profile, onSaveProfile, onUpdateProfile }: ProfilePageProps) {
   const [name, setName] = useState(profile.name ?? '');
   const [editing, setEditing] = useState(false);
-  const [weights, setWeights] = useState<WeightEntry[]>([]);
+  const { weights, reload: reloadWeights } = useWeightLog(30);
   const [weightInput, setWeightInput] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
   const { toast } = useToast();
-
-  const loadWeights = useCallback(async () => {
-    const from = toDateStr(addDays(new Date(), -30));
-    const { data } = await supabase
-      .from('weight_log')
-      .select('id, log_date, weight_kg')
-      .gte('log_date', from)
-      .order('log_date', { ascending: true })
-      .order('logged_at', { ascending: true });
-
-    // keep the latest entry per day
-    const byDay = new Map<string, WeightEntry>();
-    for (const row of (data ?? []) as WeightEntry[]) byDay.set(row.log_date, row);
-    setWeights([...byDay.values()]);
-  }, []);
-
-  useEffect(() => {
-    loadWeights();
-  }, [loadWeights]);
 
   const saveName = async () => {
     const trimmed = name.trim();
@@ -78,7 +60,7 @@ export function ProfilePage({ profile, onSaveProfile, onUpdateProfile }: Profile
       return;
     }
     setWeightInput('');
-    loadWeights();
+    reloadWeights();
 
     // Today's weight becomes the profile weight, so targets follow it.
     // saveProfile recalculates targets and keeps any calorie override.

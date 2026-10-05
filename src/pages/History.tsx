@@ -3,18 +3,22 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DayView } from '../components/DayView';
 import { CaloriesChart } from '../components/CaloriesChart';
 import { WeightChart } from '../components/WeightChart';
+import { useWeightLog } from '../hooks/useWeightLog';
 import { supabase } from '../lib/supabase';
-import { addDays, formatShortDate, toDateStr, todayStr, weekdayShort } from '../lib/date';
-import type { Profile, WeightEntry } from '../types';
+import { formatShortDate, toDateStr, todayStr, weekdayShort } from '../lib/date';
+import {
+  burnedByDay,
+  currentWeekDates,
+  intakeByDay,
+  lastNDates,
+  netCalorieSeries,
+  weekSummary,
+} from '../lib/stats';
+import type { BurnRow, FoodRow, WeekStats } from '../lib/stats';
+import type { Profile } from '../types';
 
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-
-interface WeekStats {
-  avgCalories: number;
-  avgProtein: number;
-  bestDay: string | null;
-  daysLogged: number;
-}
+const TREND_DAYS = 14;
 
 export function History({ profile }: { profile: Profile }) {
   const today = todayStr();
@@ -26,7 +30,7 @@ export function History({ profile }: { profile: Profile }) {
   const [loggedDates, setLoggedDates] = useState<Set<string>>(new Set());
   const [weekStats, setWeekStats] = useState<WeekStats | null>(null);
   const [dailyCalories, setDailyCalories] = useState<{ date: string; calories: number }[]>([]);
-  const [weights, setWeights] = useState<WeightEntry[]>([]);
+  const { weights } = useWeightLog(30);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const calTarget = profile.calorie_override ?? profile.calorie_target;
@@ -42,120 +46,29 @@ export function History({ profile }: { profile: Profile }) {
     setLoggedDates(new Set((data ?? []).map((d: { log_date: string }) => d.log_date)));
   }, [month]);
 
-  const loadWeek = useCallback(async () => {
-    const now = new Date();
-    const monday = addDays(now, -((now.getDay() + 6) % 7));
-    const sunday = addDays(monday, 6);
-    const target = profile.calorie_override ?? profile.calorie_target;
-
-    const { data } = await supabase
-      .from('food_log')
-      .select('log_date, calories, protein_g')
-      .gte('log_date', toDateStr(monday))
-      .lte('log_date', toDateStr(sunday));
-
-    // Activity burn per day (net calories, matching the ring). Fails soft if
-    // the table doesn't exist yet.
-    const { data: actData } = await supabase
-      .from('activity_log')
-      .select('log_date, calories_burned')
-      .gte('log_date', toDateStr(monday))
-      .lte('log_date', toDateStr(sunday));
-    const burned = new Map<string, number>();
-    for (const row of (actData ?? []) as { log_date: string; calories_burned: number }[]) {
-      burned.set(row.log_date, (burned.get(row.log_date) ?? 0) + (row.calories_burned ?? 0));
-    }
-
-    const byDay = new Map<string, { kcal: number; protein: number }>();
-    for (const row of (data ?? []) as { log_date: string; calories: number; protein_g: number | null }[]) {
-      const day = byDay.get(row.log_date) ?? { kcal: 0, protein: 0 };
-      day.kcal += row.calories ?? 0;
-      day.protein += row.protein_g ?? 0;
-      byDay.set(row.log_date, day);
-    }
-
-    const daysLogged = byDay.size;
-    if (daysLogged === 0) {
-      setWeekStats({ avgCalories: 0, avgProtein: 0, bestDay: null, daysLogged: 0 });
-      return;
-    }
-
-    let totalKcal = 0;
-    let totalProtein = 0;
-    let bestDay: string | null = null;
-    let bestPct = -1;
-    for (const [date, day] of byDay) {
-      const net = Math.max(0, day.kcal - (burned.get(date) ?? 0));
-      totalKcal += net;
-      totalProtein += day.protein;
-      const pct = target > 0 ? net / target : 0;
-      if (pct <= 1 && pct > bestPct) {
-        bestPct = pct;
-        bestDay = date;
-      }
-    }
-
-    setWeekStats({
-      avgCalories: Math.round(totalKcal / daysLogged),
-      avgProtein: Math.round(totalProtein / daysLogged),
-      bestDay: bestDay ? weekdayShort(bestDay) : null,
-      daysLogged,
-    });
-  }, [profile]);
-
-  const loadTrends = useCallback(async () => {
-    // Daily net calorie totals (food minus activity) across the last 14 days,
-    // zero-filled for continuity — matches the calorie ring.
-    const calFrom = toDateStr(addDays(new Date(), -13));
-    const { data: calData } = await supabase
-      .from('food_log')
-      .select('log_date, calories')
-      .gte('log_date', calFrom);
-    const sums = new Map<string, number>();
-    for (const row of (calData ?? []) as { log_date: string; calories: number }[]) {
-      sums.set(row.log_date, (sums.get(row.log_date) ?? 0) + (row.calories ?? 0));
-    }
-
-    const { data: actData } = await supabase
-      .from('activity_log')
-      .select('log_date, calories_burned')
-      .gte('log_date', calFrom);
-    const burned = new Map<string, number>();
-    for (const row of (actData ?? []) as { log_date: string; calories_burned: number }[]) {
-      burned.set(row.log_date, (burned.get(row.log_date) ?? 0) + (row.calories_burned ?? 0));
-    }
-
-    const days: { date: string; calories: number }[] = [];
-    for (let i = 13; i >= 0; i--) {
-      const ds = toDateStr(addDays(new Date(), -i));
-      days.push({ date: ds, calories: Math.max(0, (sums.get(ds) ?? 0) - (burned.get(ds) ?? 0)) });
-    }
-    setDailyCalories(days);
-
-    // Weight, last 30 days, latest entry per day.
-    const wFrom = toDateStr(addDays(new Date(), -30));
-    const { data: wData } = await supabase
-      .from('weight_log')
-      .select('id, log_date, weight_kg')
-      .gte('log_date', wFrom)
-      .order('log_date', { ascending: true })
-      .order('logged_at', { ascending: true });
-    const byDay = new Map<string, WeightEntry>();
-    for (const row of (wData ?? []) as WeightEntry[]) byDay.set(row.log_date, row);
-    setWeights([...byDay.values()]);
-  }, []);
+  // One fetch of the last 14 days feeds both the trend chart and this week's
+  // stats (this week's Monday is never more than 6 days back). Activity is
+  // subtracted to match the net calories shown on the ring; it fails soft if
+  // the activity table doesn't exist yet.
+  const loadStats = useCallback(async () => {
+    const dates = lastNDates(TREND_DAYS);
+    const [{ data: food }, { data: activity }] = await Promise.all([
+      supabase.from('food_log').select('log_date, calories, protein_g').gte('log_date', dates[0]),
+      supabase.from('activity_log').select('log_date, calories_burned').gte('log_date', dates[0]),
+    ]);
+    const intake = intakeByDay((food ?? []) as FoodRow[]);
+    const burned = burnedByDay((activity ?? []) as BurnRow[]);
+    setDailyCalories(netCalorieSeries(intake, burned, dates));
+    setWeekStats(weekSummary(intake, burned, currentWeekDates(), calTarget));
+  }, [calTarget]);
 
   useEffect(() => {
     loadMonth();
   }, [loadMonth, refreshKey]);
 
   useEffect(() => {
-    loadWeek();
-  }, [loadWeek, refreshKey]);
-
-  useEffect(() => {
-    loadTrends();
-  }, [loadTrends, refreshKey]);
+    loadStats();
+  }, [loadStats, refreshKey]);
 
   const cells = useMemo(() => {
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -245,7 +158,7 @@ export function History({ profile }: { profile: Profile }) {
             <div className="micro-label">Avg protein</div>
           </div>
           <div className="summary-stat">
-            <div className="summary-value">{weekStats?.bestDay ?? '—'}</div>
+            <div className="summary-value">{weekStats?.bestDate ? weekdayShort(weekStats.bestDate) : '—'}</div>
             <div className="micro-label">Best day</div>
           </div>
           <div className="summary-stat">

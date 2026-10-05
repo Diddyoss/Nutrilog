@@ -1,30 +1,15 @@
-import { useEffect, useState } from 'react';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { ConfirmDeleteButton } from './ConfirmDeleteButton';
 import type { ActivityEntry } from '../types';
 
 function ActivityRow({ entry, onDelete }: { entry: ActivityEntry; onDelete: (id: string) => void }) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 2500);
-    return () => clearTimeout(t);
-  }, [armed]);
-
   return (
     <div className="entry-row">
       <div className="entry-info">
         <div className="entry-name">{entry.activity_name}</div>
         <div className="entry-meta">−{entry.calories_burned} kcal</div>
       </div>
-      <button
-        className={`icon-btn${armed ? ' armed' : ''}`}
-        aria-label={armed ? 'Confirm delete' : 'Delete activity'}
-        onClick={() => (armed ? onDelete(entry.id) : setArmed(true))}
-        type="button"
-      >
-        {armed ? <Check size={16} /> : <Trash2 size={16} />}
-      </button>
+      <ConfirmDeleteButton label="Delete activity" onConfirm={() => onDelete(entry.id)} />
     </div>
   );
 }

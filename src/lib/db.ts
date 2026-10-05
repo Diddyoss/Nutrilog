@@ -24,6 +24,21 @@ export function stripNutrientFields<T extends object>(fields: T): T {
   return out;
 }
 
+/**
+ * Run an insert/update; if it fails only because nutrient columns are missing
+ * (migration not run), retry with those fields stripped. `stripped` tells the
+ * caller the row was saved without its micronutrients.
+ */
+export async function writeWithNutrientFallback<R extends object>(
+  write: (row: R) => PromiseLike<{ error: SupabaseLikeError | null }>,
+  row: R
+): Promise<{ error: SupabaseLikeError | null; stripped: boolean }> {
+  const first = await write(row);
+  if (!first.error || !isMissingColumnError(first.error)) return { error: first.error, stripped: false };
+  const retry = await write(stripNutrientFields(row));
+  return { error: retry.error, stripped: !retry.error };
+}
+
 /** True when an operation failed because the table doesn't exist (migration not run). */
 export function isMissingTableError(error: SupabaseLikeError | null | undefined): boolean {
   if (!error) return false;

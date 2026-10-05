@@ -1,6 +1,7 @@
 import type { FoodDraft, NutrientKey, NutrientValues, SearchResult } from '../types';
 import { ALL_NUTRIENT_KEYS } from './nutrientReference';
 import { ensureSession } from './supabase';
+import { metricAmountIn } from './serving';
 
 /** A non-2xx API response; `message` is the server's user-facing error text. */
 export class ApiError extends Error {
@@ -163,14 +164,6 @@ export function blankManualDraft(): FoodDraft {
   };
 }
 
-/** Grams in a serving string, e.g. "30 g" or "1 tbsp (14 g)" -> 30 / 14. */
-function servingGrams(s: string): number | null {
-  const paren = s.match(/\(\s*([\d.,]+)\s*(?:g|ml)\s*\)/i);
-  if (paren) return parseFloat(paren[1].replace(',', '.'));
-  const plain = s.match(/([\d.,]+)\s*(?:g|ml)\b/i);
-  return plain ? parseFloat(plain[1].replace(',', '.')) : null;
-}
-
 export function draftFromSearchResult(r: SearchResult): FoodDraft {
   const name = r.brand ? `${r.name} (${r.brand})` : r.name;
   const perGram =
@@ -204,7 +197,7 @@ export function draftFromSearchResult(r: SearchResult): FoodDraft {
 
   // 2) Natural serving expressed in grams but only per-100g nutrition known —
   //    scale per-100g down to the serving so the default still isn't a flat 100g.
-  const grams = r.serving_size ? servingGrams(r.serving_size) : null;
+  const grams = r.serving_size ? metricAmountIn(r.serving_size) : null;
   if (r.serving_size && grams && grams > 0 && perGram) {
     return {
       food_name: name,

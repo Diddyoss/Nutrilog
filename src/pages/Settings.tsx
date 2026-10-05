@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { useToast } from '../components/Toast';
+import { useConfirmTap } from '../hooks/useConfirmTap';
 import { supabase } from '../lib/supabase';
 import { todayStr } from '../lib/date';
 import type { FoodEntry, Profile, Units } from '../types';
@@ -19,15 +20,8 @@ export function SettingsPage({ profile, onUpdateProfile }: SettingsPageProps) {
   const [override, setOverride] = useState(
     profile.calorie_override !== null ? String(profile.calorie_override) : ''
   );
-  const [resetArmed, setResetArmed] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (!resetArmed) return;
-    const t = setTimeout(() => setResetArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [resetArmed]);
 
   const setUnits = (units: Units) => {
     if (units !== profile.units) onUpdateProfile({ units });
@@ -53,15 +47,10 @@ export function SettingsPage({ profile, onUpdateProfile }: SettingsPageProps) {
     }
   };
 
-  const resetToday = async () => {
-    if (!resetArmed) {
-      setResetArmed(true);
-      return;
-    }
-    setResetArmed(false);
+  const { armed: resetArmed, tap: tapReset } = useConfirmTap(async () => {
     const { error } = await supabase.from('food_log').delete().eq('log_date', todayStr());
     toast(error ? 'Could not reset log' : "Today's log cleared");
-  };
+  });
 
   const exportCsv = async () => {
     setExporting(true);
@@ -169,7 +158,7 @@ export function SettingsPage({ profile, onUpdateProfile }: SettingsPageProps) {
         <div className="micro-label">Data</div>
         <button
           className={`btn ${resetArmed ? 'btn-primary' : 'btn-secondary'} btn-block`}
-          onClick={resetToday}
+          onClick={tapReset}
           type="button"
         >
           {resetArmed ? "Tap again to clear today's log" : "Reset today's log"}

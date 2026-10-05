@@ -1,15 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Check, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, Pencil } from 'lucide-react';
+import { ConfirmDeleteButton } from './ConfirmDeleteButton';
+import { MEAL_LABELS } from '../lib/meals';
 import type { FoodEntry, Meal } from '../types';
-
-export const MEALS: Meal[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
-
-export const MEAL_LABELS: Record<Meal, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snacks: 'Snacks',
-};
 
 function EntryRow({
   entry,
@@ -20,14 +13,6 @@ function EntryRow({
   onEdit: (entry: FoodEntry) => void;
   onDelete: (id: string) => void;
 }) {
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 2500);
-    return () => clearTimeout(t);
-  }, [armed]);
-
   const macros = `P${Math.round(entry.protein_g ?? 0)} C${Math.round(entry.carbs_g ?? 0)} F${Math.round(entry.fat_g ?? 0)}`;
 
   return (
@@ -39,16 +24,10 @@ function EntryRow({
           {entry.calories} kcal · {macros}
         </div>
       </div>
-      <button className="icon-btn" aria-label="Edit entry" onClick={() => onEdit(entry)}>
+      <button className="icon-btn" aria-label="Edit entry" onClick={() => onEdit(entry)} type="button">
         <Pencil size={16} />
       </button>
-      <button
-        className={`icon-btn${armed ? ' armed' : ''}`}
-        aria-label={armed ? 'Confirm delete' : 'Delete entry'}
-        onClick={() => (armed ? onDelete(entry.id) : setArmed(true))}
-      >
-        {armed ? <Check size={16} /> : <Trash2 size={16} />}
-      </button>
+      <ConfirmDeleteButton label="Delete entry" onConfirm={() => onDelete(entry.id)} />
     </div>
   );
 }
@@ -66,7 +45,12 @@ export function MealSection({ meal, entries, onEdit, onDelete }: MealSectionProp
 
   return (
     <section className="card meal-section">
-      <button className="meal-header" onClick={() => setExpanded((v) => !v)} aria-expanded={expanded}>
+      <button
+        className="meal-header"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+        type="button"
+      >
         <span className="meal-title">{MEAL_LABELS[meal]}</span>
         <span className="meal-kcal">{subtotal} kcal</span>
         <ChevronDown size={16} className={`chevron${expanded ? ' open' : ''}`} />

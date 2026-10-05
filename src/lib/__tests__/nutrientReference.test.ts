@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sumNutrients, contributorsFor, formatAmount } from '../nutrientReference';
+import { sumNutrients, contributorsFor, formatAmount, microsFromRow } from '../nutrientReference';
 import type { FoodEntry, SupplementEntry } from '../../types';
 
 function makeFood(overrides: Partial<FoodEntry> = {}): FoodEntry {
@@ -161,5 +161,21 @@ describe('formatAmount', () => {
 
   it('handles values just below 10 with rounding', () => {
     expect(formatAmount(9.95, 'mg')).toBe('10mg');
+  });
+});
+
+describe('microsFromRow', () => {
+  it('keeps only non-zero, non-null nutrients', () => {
+    const row = makeFood({ iron_mg: 4, calcium_mg: 0, vitamin_c_mg: null });
+    expect(microsFromRow(row)).toEqual({ iron_mg: 4 });
+  });
+
+  it('coerces numeric strings (Postgres numeric can arrive as text)', () => {
+    const row = makeFood({ zinc_mg: '2.5' as unknown as number });
+    expect(microsFromRow(row)).toEqual({ zinc_mg: 2.5 });
+  });
+
+  it('returns an empty object when nothing is set', () => {
+    expect(microsFromRow(makeFood())).toEqual({});
   });
 });
