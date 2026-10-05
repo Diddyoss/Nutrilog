@@ -20,7 +20,14 @@ import type { Profile } from '../types';
 const DOW = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const TREND_DAYS = 14;
 
-export function History({ profile }: { profile: Profile }) {
+interface HistoryProps {
+  profile: Profile;
+  /** The nav + asked to log food — for the selected day while on History. */
+  addRequested: boolean;
+  onAddHandled: () => void;
+}
+
+export function History({ profile, addRequested, onAddHandled }: HistoryProps) {
   const today = todayStr();
   const [month, setMonth] = useState(() => {
     const now = new Date();
@@ -144,6 +151,8 @@ export function History({ profile }: { profile: Profile }) {
         profile={profile}
         canAdd={selected <= today}
         onChanged={() => setRefreshKey((k) => k + 1)}
+        addRequested={addRequested}
+        onAddHandled={onAddHandled}
       />
 
       <section className="card">

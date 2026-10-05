@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { CalorieRing } from './CalorieRing';
 import { MacroBars } from './MacroBars';
 import { MealSection } from './MealSection';
 import { MEALS, MEAL_LABELS } from '../lib/meals';
 import { AddFoodSheet } from './AddFoodSheet';
-import { Portal } from './Portal';
 import { FoodModal } from './FoodModal';
 import { NutrientPieChart } from './NutrientPieChart';
 import { NutrientBreakdownTable } from './NutrientBreakdownTable';
@@ -26,10 +24,9 @@ interface DayViewProps {
   profile: Profile;
   canAdd: boolean;
   onChanged?: () => void;
-  /** Floating add button. Off where an external control (the nav +) opens the sheet. */
-  showFab?: boolean;
-  /** Increments to request the add-food sheet from outside (the nav +). */
-  openAddSignal?: number;
+  /** The nav + asked for the add-food sheet; opened (if allowed) then acknowledged. */
+  addRequested?: boolean;
+  onAddHandled?: () => void;
 }
 
 function entryToDraft(entry: FoodEntry): FoodDraft {
@@ -51,8 +48,8 @@ export function DayView({
   profile,
   canAdd,
   onChanged,
-  showFab = true,
-  openAddSignal,
+  addRequested = false,
+  onAddHandled,
 }: DayViewProps) {
   const { byMeal, entries, totals, loading, addEntry, updateEntry, deleteEntry } = useFoodLog(
     date,
@@ -84,14 +81,13 @@ export function DayView({
 
   const swipeRef = useRef<HTMLDivElement>(null);
   const nonce = useRef(0);
-  const lastAddSignal = useRef(openAddSignal);
-
-  // The nav + lives outside this component; a changed signal opens the sheet.
+  // The nav + lives outside this component. A pending request is consumed on
+  // mount too, so + from another tab opens the sheet once this view appears.
   useEffect(() => {
-    if (openAddSignal === undefined || openAddSignal === lastAddSignal.current) return;
-    lastAddSignal.current = openAddSignal;
+    if (!addRequested) return;
     if (canAdd) setSheetOpen(true);
-  }, [openAddSignal, canAdd]);
+    onAddHandled?.();
+  }, [addRequested, canAdd, onAddHandled]);
 
   const isToday = date === todayStr();
   const target = profile.calorie_override ?? profile.calorie_target;
@@ -201,7 +197,7 @@ export function DayView({
           {canAdd && <p className="muted">Tap + to log your first meal.</p>}
         </div>
       ) : (
-        <div className="meals">
+        <section className="card meals-card" aria-label="Meals">
           {MEALS.map((meal) => (
             <MealSection
               key={meal}
@@ -211,15 +207,7 @@ export function DayView({
               onDelete={deleteEntry}
             />
           ))}
-        </div>
-      )}
-
-      {canAdd && showFab && (
-        <Portal>
-          <button className="fab" onClick={() => setSheetOpen(true)} aria-label="Add food" type="button">
-            <Plus size={26} />
-          </button>
-        </Portal>
+        </section>
       )}
 
       <AddFoodSheet

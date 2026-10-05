@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import type { Tab } from './components/BottomNav';
 import { Today } from './pages/Today';
@@ -50,12 +50,14 @@ function ErrorScreen({ onRetry }: { onRetry: () => void }) {
 export default function App() {
   const { profile, status, reload, saveProfile, updateProfile } = useProfile();
   const [tab, setTab] = useState<Tab>('today');
-  const [addFoodSignal, setAddFoodSignal] = useState(0);
+  const [addRequested, setAddRequested] = useState(false);
+  const onAddHandled = useCallback(() => setAddRequested(false), []);
 
-  // The nav + always logs against today, so switch there before opening the sheet.
+  // The nav + logs against the day on screen: the selected day on History,
+  // otherwise today (switching there first).
   const requestAddFood = () => {
-    setTab('today');
-    setAddFoodSignal((n) => n + 1);
+    if (tab !== 'history') setTab('today');
+    setAddRequested(true);
   };
 
   if (!isSupabaseConfigured) return <SetupNotice />;
@@ -66,8 +68,12 @@ export default function App() {
   return (
     <div className="app">
       <main>
-        {tab === 'today' && <Today profile={profile} openAddSignal={addFoodSignal} />}
-        {tab === 'history' && <History profile={profile} />}
+        {tab === 'today' && (
+          <Today profile={profile} addRequested={addRequested} onAddHandled={onAddHandled} />
+        )}
+        {tab === 'history' && (
+          <History profile={profile} addRequested={addRequested} onAddHandled={onAddHandled} />
+        )}
         {tab === 'profile' && (
           <ProfilePage profile={profile} onSaveProfile={saveProfile} onUpdateProfile={updateProfile} />
         )}

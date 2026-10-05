@@ -21,7 +21,7 @@ const RIGHT_TABS: TabDef[] = [
 interface BottomNavProps {
   tab: Tab;
   onChange: (tab: Tab) => void;
-  /** Centre + — jumps to Today and opens the add-food sheet. */
+  /** Centre + — opens the add-food sheet for the day on screen (today unless on History). */
   onAddFood: () => void;
 }
 

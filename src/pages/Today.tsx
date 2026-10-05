@@ -4,24 +4,24 @@ import type { Profile } from '../types';
 
 interface TodayProps {
   profile: Profile;
-  /** Increments when the nav + is tapped, to open the add-food sheet. */
-  openAddSignal?: number;
+  /** The nav + asked to open the add-food sheet. */
+  addRequested: boolean;
+  onAddHandled: () => void;
 }
 
-export function Today({ profile, openAddSignal }: TodayProps) {
+export function Today({ profile, addRequested, onAddHandled }: TodayProps) {
   return (
     <div className="page">
       <header className="page-header">
         <div className="micro-label">Today</div>
         <h1 className="page-title">{formatLongDate(new Date())}</h1>
       </header>
-      {/* No floating button here — the nav + is the add control for today. */}
       <DayView
         date={todayStr()}
         profile={profile}
         canAdd
-        showFab={false}
-        openAddSignal={openAddSignal}
+        addRequested={addRequested}
+        onAddHandled={onAddHandled}
       />
     </div>
   );

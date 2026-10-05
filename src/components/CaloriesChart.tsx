@@ -35,7 +35,7 @@ export function CaloriesChart({ days, target }: CaloriesChartProps) {
               y={y}
               width={barW}
               height={Math.max(0, h)}
-              rx="1"
+              rx={Math.min(3, barW / 2)}
             />
           );
         })}

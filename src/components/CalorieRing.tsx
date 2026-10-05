@@ -41,15 +41,17 @@ export function CalorieRing({ consumed, target, dayProgress, burned = 0 }: Calor
             </>
           )}
           <circle className="ring-track" cx="110" cy="110" r={R} />
-          <circle
-            className="ring-progress"
-            cx="110"
-            cy="110"
-            r={R}
-            style={{ stroke }}
-            strokeDasharray={C}
-            strokeDashoffset={C * (1 - mainFrac)}
-          />
+          {mainFrac > 0 && (
+            <circle
+              className="ring-progress"
+              cx="110"
+              cy="110"
+              r={R}
+              style={{ stroke }}
+              strokeDasharray={C}
+              strokeDashoffset={C * (1 - mainFrac)}
+            />
+          )}
           {overFrac > 0 && (
             <circle
               className="ring-over"
@@ -62,7 +64,7 @@ export function CalorieRing({ consumed, target, dayProgress, burned = 0 }: Calor
         </svg>
         <div className="ring-center">
           <div className="stat-giant">{display}</div>
-          <div className="micro-label">/ {Math.round(target)} kcal</div>
+          <div className="ring-of">of {Math.round(target)} kcal</div>
         </div>
       </div>
       <div className={`ring-remaining${pct > 1 ? ' over' : ''}`}>

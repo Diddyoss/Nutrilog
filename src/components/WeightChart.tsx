@@ -33,6 +33,17 @@ export function WeightChart({ entries, units }: WeightChartProps) {
   return (
     <div className="weight-chart">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Weight trend over the last 30 days">
+        <defs>
+          <linearGradient id="weight-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon
+          className="chart-area"
+          fill="url(#weight-area)"
+          points={`${PAD},${H - PAD} ${points} ${W - PAD},${H - PAD}`}
+        />
         <polyline className="chart-line" points={points} />
         {values.map((v, i) => {
           const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
