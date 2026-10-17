@@ -1,38 +1,50 @@
 import { useRef, useState } from 'react';
-import { Camera, Image as ImageIcon } from 'lucide-react';
-import { analyzeFoodImage, ApiError } from '../lib/api';
+import { Camera, Images } from 'lucide-react';
+import { analyzeFoodImage } from '../lib/api';
 import { fileToResizedBase64 } from '../lib/image';
+import { analyseBatch, batchNotice, MAX_PHOTOS_PER_BATCH } from '../lib/photoBatch';
 import type { FoodDraft } from '../types';
 
 interface PhotoTabProps {
-  onResult: (draft: FoodDraft) => void;
+  /** One draft per photo that was analysed, plus a note about any that weren't. */
+  onResults: (drafts: FoodDraft[], notice?: string) => void;
 }
 
-export function PhotoTab({ onResult }: PhotoTabProps) {
+export function PhotoTab({ onResults }: PhotoTabProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const libraryInputRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState('');
 
-  const handleFile = async (file: File | undefined | null) => {
-    if (!file) return;
-    setLoading(true);
+  const handleFiles = async (list: FileList | null) => {
+    const files = list ? Array.from(list) : [];
+    if (files.length === 0) return;
     setError(null);
-    try {
-      const { base64, mediaType } = await fileToResizedBase64(file);
-      const draft = await analyzeFoodImage(base64, mediaType, context.trim() || undefined);
-      onResult(draft);
-    } catch (e) {
-      // Limit/session errors carry an actionable message; anything else stays generic.
-      const actionable = e instanceof ApiError && (e.status === 401 || e.status === 429);
-      setError(actionable ? e.message : 'Analysis failed — try another photo or use Search.');
-    } finally {
-      setLoading(false);
+    setProgress({ current: 1, total: Math.min(files.length, MAX_PHOTOS_PER_BATCH) });
+    // The context note applies to every photo in the pick.
+    const note = context.trim() || undefined;
+    const result = await analyseBatch(
+      files,
+      async (file) => {
+        const { base64, mediaType } = await fileToResizedBase64(file);
+        return analyzeFoodImage(base64, mediaType, note);
+      },
+      (current, total) => setProgress({ current, total })
+    );
+    setProgress(null);
+    const notice = batchNotice(result);
+    if (result.drafts.length > 0) {
+      onResults(result.drafts, notice ?? undefined);
+    } else {
+      setError(
+        result.stoppedBy ??
+          (files.length > 1 ? 'None of the photos could be analysed — try others or use Search.' : 'Analysis failed — try another photo or use Search.')
+      );
     }
   };
 
-  if (loading) {
+  if (progress) {
     return (
       <div className="analysing">
         <div className="loading-dots">
@@ -40,7 +52,9 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
           <span />
           <span />
         </div>
-        <p className="body-text">Analysing your food…</p>
+        <p className="body-text">
+          {progress.total > 1 ? `Analysing photo ${progress.current} of ${progress.total}…` : 'Analysing your food…'}
+        </p>
       </div>
     );
   }
@@ -67,13 +81,13 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
         onClick={() => libraryInputRef.current?.click()}
         type="button"
       >
-        <ImageIcon size={16} />
-        Upload from library
+        <Images size={16} />
+        Choose from library
       </button>
       {error && <p className="caption error-text">{error}</p>}
       <p className="caption muted center">
-        Snap your plate and the AI will estimate calories and macros. You can adjust everything
-        before saving.
+        Snap your plate and the AI will estimate calories and macros. Pick up to {MAX_PHOTOS_PER_BATCH} photos
+        from your library to log several foods at once — you review each before it's added.
       </p>
       <input
         ref={cameraInputRef}
@@ -82,7 +96,7 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
         capture="environment"
         hidden
         onChange={(e) => {
-          handleFile(e.target.files?.[0]);
+          handleFiles(e.target.files);
           e.target.value = '';
         }}
       />
@@ -90,9 +104,10 @@ export function PhotoTab({ onResult }: PhotoTabProps) {
         ref={libraryInputRef}
         type="file"
         accept="image/*"
+        multiple
         hidden
         onChange={(e) => {
-          handleFile(e.target.files?.[0]);
+          handleFiles(e.target.files);
           e.target.value = '';
         }}
       />

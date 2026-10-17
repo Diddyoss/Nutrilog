@@ -14,7 +14,8 @@ import { useFoodLog } from '../hooks/useFoodLog';
 import { useSupplementLog } from '../hooks/useSupplementLog';
 import { useActivityLog } from '../hooks/useActivityLog';
 import { useCustomFoods } from '../hooks/useCustomFoods';
-import { customFoodFromSaveFields, shouldSaveAsCustomFood } from '../lib/customFoods';
+import { customFoodFromSaveFields, saveToLibraryByDefault, shouldSaveAsCustomFood } from '../lib/customFoods';
+import { useToast } from './Toast';
 import { microsFromRow, sumNutrients } from '../lib/nutrientReference';
 import { dayProgress, todayStr } from '../lib/date';
 import type { FoodDraft, FoodEntry, NutrientKey, Profile } from '../types';
@@ -72,7 +73,19 @@ export function DayView({
   } = useCustomFoods();
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [draft, setDraft] = useState<FoodDraft | null>(null);
+  // Drafts waiting to be confirmed: one normally, several after a multi-photo pick.
+  const [queue, setQueue] = useState<{
+    drafts: FoodDraft[];
+    index: number;
+    batch: number;
+    notice?: string;
+  } | null>(null);
+  const draft = queue ? queue.drafts[queue.index] : null;
+  const { toast } = useToast();
+  const startQueue = (drafts: FoodDraft[], notice?: string) =>
+    setQueue((q) => ({ drafts, index: 0, batch: (q?.batch ?? 0) + 1, notice }));
+  const nextDraft = () =>
+    setQueue((q) => (q && q.index + 1 < q.drafts.length ? { ...q, index: q.index + 1 } : null));
   const [editing, setEditing] = useState<FoodEntry | null>(null);
   const [suppOpen, setSuppOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -213,9 +226,9 @@ export function DayView({
       <AddFoodSheet
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
-        onResult={(d) => {
+        onResults={(drafts, notice) => {
           setSheetOpen(false);
-          setDraft(d);
+          startQueue(drafts, notice);
         }}
         customFoods={customFoods}
         customFoodsLoading={customFoodsLoading}
@@ -223,23 +236,30 @@ export function DayView({
         onRemoveCustomFood={removeCustomFood}
       />
 
-      {draft && (
+      {queue && draft && (
         <FoodModal
+          key={`${queue.batch}-${queue.index}`}
           title="Confirm food"
           saveLabel="Add to Log"
           draft={draft}
           impact={addImpact}
-          onClose={() => setDraft(null)}
-          onSave={async (fields) => {
+          progress={queue.drafts.length > 1 ? `Photo ${queue.index + 1} of ${queue.drafts.length}` : undefined}
+          notice={queue.notice}
+          cancelLabel={queue.index + 1 < queue.drafts.length ? 'Skip' : 'Cancel'}
+          // Re-logging a saved food needs no checkbox: it's already in My Foods.
+          saveToLibraryDefault={draft.custom_food_id ? undefined : saveToLibraryByDefault(draft.source)}
+          onClose={nextDraft}
+          onSave={async (fields, { saveToLibrary }) => {
             const ok = await addEntry(fields);
             if (!ok) return;
-            setDraft(null);
-            // Remember manual entries in My Foods. Re-logging a saved food only
-            // bumps its usage; a fresh manual entry is saved (or refreshed by name).
+            nextDraft();
+            // Re-logging a saved food only bumps its usage; otherwise save (or
+            // refresh by name) if the box was ticked.
             if (draft.custom_food_id) {
               void touchCustomFood(draft.custom_food_id);
-            } else if (shouldSaveAsCustomFood(fields)) {
-              void saveCustomFood(customFoodFromSaveFields(fields));
+            } else if (shouldSaveAsCustomFood(fields, saveToLibrary)) {
+              const saved = await saveCustomFood(customFoodFromSaveFields(fields));
+              if (saved && fields.source !== 'manual') toast('Saved to My Foods');
             }
           }}
         />

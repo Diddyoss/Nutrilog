@@ -18,7 +18,8 @@ const TAB_LABELS: Record<SheetTab, string> = {
 interface AddFoodSheetProps {
   open: boolean;
   onClose: () => void;
-  onResult: (draft: FoodDraft) => void;
+  /** Usually one draft; several when multiple photos were picked. */
+  onResults: (drafts: FoodDraft[], notice?: string) => void;
   customFoods: CustomFood[];
   customFoodsLoading: boolean;
   customFoodsAvailable: boolean;
@@ -28,7 +29,7 @@ interface AddFoodSheetProps {
 export function AddFoodSheet({
   open,
   onClose,
-  onResult,
+  onResults,
   customFoods,
   customFoodsLoading,
   customFoodsAvailable,
@@ -41,6 +42,8 @@ export function AddFoodSheet({
   }, [open]);
 
   if (!open) return null;
+
+  const onResult = (draft: FoodDraft) => onResults([draft]);
 
   return (
     <Portal>
@@ -61,7 +64,7 @@ export function AddFoodSheet({
           </div>
           <div className="sheet-content">
             {tab === 'scan' && <ScanTab onResult={onResult} onSwitchToPhoto={() => setTab('photo')} />}
-            {tab === 'photo' && <PhotoTab onResult={onResult} />}
+            {tab === 'photo' && <PhotoTab onResults={onResults} />}
             {tab === 'search' && <SearchTab onResult={onResult} />}
             {tab === 'manual' && (
               <ManualTab

@@ -59,7 +59,7 @@ export function ManualTab({ foods, loading, available, onResult, onRemove }: Man
       ) : foods.length === 0 ? (
         !loading && (
           <p className="caption muted">
-            Foods you enter here are saved so you can log them again with one tap.
+            Foods you enter here are saved to log again with one tap. To keep a scanned or searched food, tick “Save to My Foods” when adding it.
           </p>
         )
       ) : (

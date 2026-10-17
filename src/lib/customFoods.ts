@@ -1,4 +1,4 @@
-import type { CustomFood, CustomFoodSaveFields, FoodDraft, FoodSaveFields } from '../types';
+import type { CustomFood, CustomFoodSaveFields, FoodDraft, FoodSaveFields, FoodSource } from '../types';
 import { microsFromRow } from './nutrientReference';
 
 /** Turn a saved custom food back into an editable draft for the Confirm Food modal. */
@@ -24,9 +24,18 @@ export function customFoodFromSaveFields(fields: FoodSaveFields): CustomFoodSave
   return rest;
 }
 
+/**
+ * Whether "Save to My Foods" starts ticked. Hand-entered foods have nowhere
+ * else to come from, so they default to saved; scan/search/photo results can
+ * be found again, so saving them is opt-in.
+ */
+export function saveToLibraryByDefault(source: FoodSource): boolean {
+  return source === 'manual';
+}
+
 /** True when logging this entry should create/refresh a saved custom food. */
-export function shouldSaveAsCustomFood(fields: FoodSaveFields): boolean {
-  return fields.source === 'manual' && fields.food_name.trim().length > 0;
+export function shouldSaveAsCustomFood(fields: FoodSaveFields, optedIn: boolean): boolean {
+  return optedIn && fields.food_name.trim().length > 0;
 }
 
 function normalize(s: string): string {

@@ -101,15 +101,35 @@ interface FoodModalProps {
   draft: FoodDraft;
   initialMeal?: Meal;
   impact?: FoodImpact;
-  onSave: (fields: FoodSaveFields) => Promise<void> | void;
+  onSave: (fields: FoodSaveFields, options: { saveToLibrary: boolean }) => Promise<void> | void;
   onClose: () => void;
+  /** Show a "Save to My Foods" checkbox, starting in this state. Omit to hide it. */
+  saveToLibraryDefault?: boolean;
+  /** e.g. "Photo 2 of 4" when reviewing a batch. */
+  progress?: string;
+  /** Note about photos in the batch that didn't make it. */
+  notice?: string;
+  /** Label for the dismiss button; "Skip" while reviewing a batch. */
+  cancelLabel?: string;
 }
 
 function numStr(v: number | null): string {
   return v === null || v === undefined ? '' : String(Math.round(v * 10) / 10);
 }
 
-export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave, onClose }: FoodModalProps) {
+export function FoodModal({
+  title,
+  saveLabel,
+  draft,
+  initialMeal,
+  impact,
+  onSave,
+  onClose,
+  saveToLibraryDefault,
+  progress,
+  notice,
+  cancelLabel = 'Cancel',
+}: FoodModalProps) {
   const [name, setName] = useState(draft.food_name);
   const [serving, setServing] = useState(draft.serving_size);
   const [meal, setMeal] = useState<Meal>(initialMeal ?? defaultMealForNow());
@@ -121,6 +141,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   const [microsOpen, setMicrosOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveToLibrary, setSaveToLibrary] = useState(saveToLibraryDefault ?? false);
 
   // Original values captured on open — all proportional rescaling is anchored
   // here so repeated edits never compound rounding drift.
@@ -208,7 +229,7 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         fat_g: parseFloat(fat) || 0,
         source: draft.source,
         ...microValues,
-      });
+      }, { saveToLibrary: saveToLibraryDefault !== undefined && saveToLibrary });
     } finally {
       setSaving(false);
     }
@@ -217,9 +238,14 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
   return (
     <Modal onClose={onClose}>
       <div className="modal-head">
-        <h2 className="modal-title">{title}</h2>
+        <div className="modal-title-group">
+          <h2 className="modal-title">{title}</h2>
+          {progress && <span className="caption">{progress}</span>}
+        </div>
         <span className="badge">{SOURCE_LABELS[draft.source]}</span>
       </div>
+
+      {notice && <p className="caption notice">{notice}</p>}
 
       {draft.source === 'ai_photo' && (
         <p className="caption">
@@ -376,11 +402,25 @@ export function FoodModal({ title, saveLabel, draft, initialMeal, impact, onSave
         Changing the serving or calories rescales the other values proportionally.
       </p>
 
+      {saveToLibraryDefault !== undefined && (
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={saveToLibrary}
+            onChange={(e) => setSaveToLibrary(e.target.checked)}
+          />
+          <span className="check-text">
+            <span>Save to My Foods</span>
+            <span className="caption muted">Log it again from the Manual tab</span>
+          </span>
+        </label>
+      )}
+
       {error && <p className="caption error-text">{error}</p>}
 
       <div className="modal-actions">
         <button className="btn btn-secondary" onClick={onClose} type="button">
-          Cancel
+          {cancelLabel}
         </button>
         <button className="btn btn-primary" onClick={submit} disabled={saving} type="button">
           {saving ? <span className="spinner" /> : saveLabel}

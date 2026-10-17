@@ -1204,6 +1204,46 @@ input[type='time'].input {
   gap: 8px;
 }
 
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.notice {
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+}
+
+.check-row input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
 .modal-title {
   font-size: 20px;
   font-weight: 700;
@@ -1528,7 +1568,7 @@ input[type='time'].input {
 
 .toast-container {
   position: fixed;
-  bottom: calc(var(--nav-height) + 16px + env(safe-area-inset-bottom));
+  top: calc(12px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
@@ -1559,7 +1599,7 @@ input[type='time'].input {
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;

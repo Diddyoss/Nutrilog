@@ -4,6 +4,7 @@ import {
   customFoodSummary,
   customFoodToDraft,
   filterCustomFoods,
+  saveToLibraryByDefault,
   shouldSaveAsCustomFood,
 } from '../customFoods';
 import { ALL_NUTRIENT_KEYS } from '../nutrientReference';
@@ -91,19 +92,32 @@ describe('customFoodFromSaveFields', () => {
   });
 });
 
-describe('shouldSaveAsCustomFood', () => {
-  it('is true for manual entries with a name', () => {
-    expect(shouldSaveAsCustomFood(makeSaveFields())).toBe(true);
+describe('saveToLibraryByDefault', () => {
+  it('is on for manual entries', () => {
+    expect(saveToLibraryByDefault('manual')).toBe(true);
   });
 
-  it('is false for entries from scan, search or AI photo', () => {
-    expect(shouldSaveAsCustomFood(makeSaveFields({ source: 'scan' }))).toBe(false);
-    expect(shouldSaveAsCustomFood(makeSaveFields({ source: 'search' }))).toBe(false);
-    expect(shouldSaveAsCustomFood(makeSaveFields({ source: 'ai_photo' }))).toBe(false);
+  it('is off (opt-in) for scan, search and AI photo', () => {
+    expect(saveToLibraryByDefault('scan')).toBe(false);
+    expect(saveToLibraryByDefault('search')).toBe(false);
+    expect(saveToLibraryByDefault('ai_photo')).toBe(false);
+  });
+});
+
+describe('shouldSaveAsCustomFood', () => {
+  it('saves when opted in, whatever the source', () => {
+    for (const source of ['manual', 'scan', 'search', 'ai_photo'] as const) {
+      expect(shouldSaveAsCustomFood(makeSaveFields({ source }), true)).toBe(true);
+    }
+  });
+
+  it('never saves when not opted in, even manual entries', () => {
+    expect(shouldSaveAsCustomFood(makeSaveFields({ source: 'manual' }), false)).toBe(false);
+    expect(shouldSaveAsCustomFood(makeSaveFields({ source: 'scan' }), false)).toBe(false);
   });
 
   it('is false when the name is blank', () => {
-    expect(shouldSaveAsCustomFood(makeSaveFields({ food_name: '   ' }))).toBe(false);
+    expect(shouldSaveAsCustomFood(makeSaveFields({ food_name: '   ' }), true)).toBe(false);
   });
 });
 
